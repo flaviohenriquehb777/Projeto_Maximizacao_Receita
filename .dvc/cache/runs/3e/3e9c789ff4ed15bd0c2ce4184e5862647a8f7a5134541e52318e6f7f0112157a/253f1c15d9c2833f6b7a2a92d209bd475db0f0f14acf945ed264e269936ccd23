@@ -1,0 +1,19 @@
+cmd: python src/train.py
+deps:
+- path: dados/dadosVenda.xlsx
+  hash: md5
+  md5: fd3210963fefacc3054057cfe63ae0fa
+  size: 73395
+- path: src/train.py
+  hash: md5
+  md5: cc840fb2209451f7f4a6550bf3e21145
+  size: 5054
+outs:
+- path: artifacts/metrics.json
+  hash: md5
+  md5: 21bb73c4230d8f72acb58d136eb0cf1c
+  size: 66
+- path: models/model_linear.joblib
+  hash: md5
+  md5: 0b8871ee8801520f4e6efc04542fd40b
+  size: 993

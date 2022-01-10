@@ -1,0 +1,15 @@
+artifact_uri: file:///C:/Users/flavi/Documents/GitHub/Projeto_Maximizacao_Receita/mlruns/0/96eb05939b264c12a52f0c128abfaf37/artifacts
+end_time: 1760008479347
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 96eb05939b264c12a52f0c128abfaf37
+run_name: Ridge_alpha_0.1
+run_uuid: 96eb05939b264c12a52f0c128abfaf37
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1760008479302
+status: 3
+tags: []
+user_id: FHB_DS

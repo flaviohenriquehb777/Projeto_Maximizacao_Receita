@@ -1,0 +1,37 @@
+cmd: python src/experiments.py
+deps:
+- path: dados/dadosVenda.xlsx
+  hash: md5
+  md5: fd3210963fefacc3054057cfe63ae0fa
+  size: 73395
+- path: src/experiments.py
+  hash: md5
+  md5: 1cd4865cc340c66c46f8adb11e712f5e
+  size: 7233
+params:
+  params.yaml:
+    experiments.gb_learning_rates:
+    - 0.05
+    - 0.1
+    experiments.lasso_alphas:
+    - 0.1
+    - 1.0
+    - 10.0
+    experiments.random_state: 42
+    experiments.rf_n_estimators:
+    - 100
+    - 300
+    experiments.ridge_alphas:
+    - 0.1
+    - 1.0
+    - 10.0
+    experiments.test_size: 0.2
+outs:
+- path: artifacts/metrics_best.json
+  hash: md5
+  md5: 2b8375e89903676cd17c58b45ed22426
+  size: 98
+- path: models/model_best.joblib
+  hash: md5
+  md5: 4270949b9ef172e21a2be733fca7229e
+  size: 896

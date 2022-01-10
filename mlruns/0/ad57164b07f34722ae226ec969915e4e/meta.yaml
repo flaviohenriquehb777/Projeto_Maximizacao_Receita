@@ -1,0 +1,15 @@
+artifact_uri: file:///C:/Users/flavi/Documents/GitHub/Projeto_Maximizacao_Receita/mlruns/0/ad57164b07f34722ae226ec969915e4e/artifacts
+end_time: 1760008479523
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: ad57164b07f34722ae226ec969915e4e
+run_name: Lasso_alpha_1.0
+run_uuid: ad57164b07f34722ae226ec969915e4e
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1760008479492
+status: 3
+tags: []
+user_id: FHB_DS

@@ -1,0 +1,15 @@
+artifact_uri: file:///C:/Users/flavi/Documents/GitHub/Projeto_Maximizacao_Receita/mlruns/0/774ea20b86f647efb54da0f1c17a8436/artifacts
+end_time: 1760026225216
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 774ea20b86f647efb54da0f1c17a8436
+run_name: best_model_LinearRegression
+run_uuid: 774ea20b86f647efb54da0f1c17a8436
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1760026220416
+status: 3
+tags: []
+user_id: FHB_DS
