@@ -1,0 +1,33 @@
+name: CI Pure Sanity
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pure:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print environment without using actions
+        run: |
+          echo "Repo: ${{ github.repository }}"
+          echo "Ref: ${{ github.ref }}"
+          echo "Runner OS: ${{ runner.os }}"
+          echo "Actor: ${{ github.actor }}"
+          echo "Date: $(date)"
+          python3 --version || true
+          uname -a || true
+      - name: Summary
+        if: ${{ always() }}
+        run: |
+          echo "# Pure Sanity Run" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Repo: ${{ github.repository }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Ref: ${{ github.ref }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Runner OS: ${{ runner.os }}" >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,15 @@
+artifact_uri: file:///C:/Users/flavi/Documents/GitHub/Projeto_Maximizacao_Receita/mlruns/0/627055e6e7a647e89de611f53fdd6010/artifacts
+end_time: 1759932934731
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 627055e6e7a647e89de611f53fdd6010
+run_name: RandomForest_100
+run_uuid: 627055e6e7a647e89de611f53fdd6010
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1759932934488
+status: 3
+tags: []
+user_id: FHB_DS

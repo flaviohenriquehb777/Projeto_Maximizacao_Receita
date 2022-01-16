@@ -1,0 +1,37 @@
+name: CI Sanity
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 10 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Print environment
+        run: |
+          echo "Repo: ${{ github.repository }}"
+          echo "Ref: ${{ github.ref }}"
+          echo "Runner OS: ${{ runner.os }}"
+          echo "Actor: ${{ github.actor }}"
+          python --version || true
+          uname -a || true
+      - name: Summary
+        if: ${{ always() }}
+        run: |
+          echo "# Sanity Run" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Repo: ${{ github.repository }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Ref: ${{ github.ref }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Runner OS: ${{ runner.os }}" >> "$GITHUB_STEP_SUMMARY"

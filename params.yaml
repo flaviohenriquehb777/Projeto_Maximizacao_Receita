@@ -1,0 +1,7 @@
+experiments:
+  ridge_alphas: [0.1, 1.0, 10.0]
+  lasso_alphas: [0.1, 1.0, 10.0]
+  rf_n_estimators: [100, 300]
+  gb_learning_rates: [0.05, 0.1]
+  test_size: 0.2
+  random_state: 42

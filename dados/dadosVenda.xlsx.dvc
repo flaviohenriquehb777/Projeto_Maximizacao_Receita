@@ -1,0 +1,5 @@
+outs:
+- md5: fd3210963fefacc3054057cfe63ae0fa
+  size: 73395
+  hash: md5
+  path: dadosVenda.xlsx

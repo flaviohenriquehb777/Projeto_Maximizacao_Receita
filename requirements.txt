@@ -1,0 +1,22 @@
+﻿pandas
+numpy
+matplotlib
+seaborn
+scikit-learn
+joblib
+openpyxl
+
+# MLOps stack
+dvc
+mlflow
+dagshub
+python-dotenv
+pyyaml
+types-PyYAML
+pytest
+pytest-cov
+pre-commit
+black==23.12.0
+mypy
+ruff
+tox
