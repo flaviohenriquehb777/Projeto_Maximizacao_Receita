@@ -292,3 +292,4 @@ Se tiver alguma dúvida, sugestão ou quiser colaborar, sinta-se à vontade para
 <!-- Progress: 5/210 - 2022-01-24 19:41:00 -->
 <!-- Progress: 6/210 - 2022-01-26 21:07:00 -->
 <!-- Progress: 7/210 - 2022-01-27 10:11:00 -->
+<!-- Progress: 8/210 - 2022-01-27 13:29:00 -->
