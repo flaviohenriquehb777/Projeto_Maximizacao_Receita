@@ -1,0 +1,74 @@
+:root {
+  --bg: #0f1115;
+  --card: #1a1f29;
+  --text: #e6e9ef;
+  --muted: #9aa4b2;
+  --accent: #4cc9f0;
+  --accent-2: #22d3ee;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+}
+
+header, footer { max-width: 920px; margin: 24px auto; padding: 0 16px; }
+header .title { display: flex; align-items: center; gap: 10px; }
+header .title .logo { width: 32px; height: 32px; border-radius: 6px; }
+header h1 { margin: 0 0 4px 0; font-size: 1.6rem; }
+header p { margin: 0; color: var(--muted); }
+
+main { max-width: 920px; margin: 16px auto 32px; padding: 0 16px; }
+.card {
+  background: var(--card);
+  border: 1px solid #242b38;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.25);
+}
+.card h2 { margin-top: 0; font-size: 1.2rem; }
+
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+label { display: flex; flex-direction: column; gap: 8px; }
+
+input[type="number"] {
+  background: #12161e;
+  border: 1px solid #2a3240;
+  border-radius: 8px;
+  color: var(--text);
+  padding: 10px;
+}
+
+.slider-row { display: grid; grid-template-columns: 140px 1fr 80px; gap: 12px; align-items: center; margin-top: 12px; }
+input[type="range"] { width: 100%; }
+
+.actions { display: flex; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
+button {
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  border: none;
+  color: #0b0f14;
+  font-weight: 600;
+  border-radius: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  max-width: 100%;
+  white-space: normal;
+  text-align: center;
+}
+/* Evita que o texto extrapole em layouts estreitos dentro de flex */
+.actions button { min-width: 0; width: 100%; overflow-wrap: anywhere; }
+button:hover { filter: brightness(1.1); }
+
+.results, .best { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.muted { color: var(--muted); }
+.value { font-size: 1.25rem; margin-top: 4px; }
+
+@media (max-width: 800px) {
+  .grid, .results, .best { grid-template-columns: 1fr; }
+  .slider-row { grid-template-columns: 120px 1fr 60px; }
+}
