@@ -1,0 +1,29 @@
+# Python caches
+__pycache__/
+*.py[cod]
+
+# Jupyter
+.ipynb_checkpoints/
+notebooks/*.ipynb
+!notebooks/Projeto_Maximizacao_Receita_01.ipynb
+!notebooks/Projeto_Maximizacao_Receita_Final.ipynb
+!notebooks/Projeto_Maximizacao_Receita_EDA_Preprocess.ipynb
+
+# MLflow local runs
+mlruns/
+
+# Models and artifacts (kept out of VCS; CI/DagsHub will track)
+models/*.pkl
+models/*.joblib
+models/shap_summary.png
+
+# Data (use external storage; commit samples only if needed)
+dados/*.xlsx
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Node/npm (if any dev tooling)
+node_modules/

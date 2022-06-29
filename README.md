@@ -2,7 +2,7 @@
 
 [![Abrir a aplicação](docs/app_thumbnail.svg)](https://flaviohenriquehb777.github.io/Projeto_Maximizacao_Receita/)
 
-Abra a aplicação acima. Abaixo, segue a documentação completa original do projeto.
+Abra a aplicação acima. Abaixo, segue a documentação completa do projeto com o fluxo atualizado.
 
 # Otimização de Receita com Machine Learning
 
@@ -33,31 +33,38 @@ Este projeto foca na aplicação de Machine Learning (Regressão Linear) para an
 * Construir e avaliar um modelo de regressão capaz de prever a quantidade vendida.
 * Identificar a combinação ideal de preço de venda e desconto para maximizar a receita.
 
-## Estrutura do Projeto:
+## Estrutura do Projeto
 
-O repositório está organizado para facilitar a navegação e compreensão:
-
--   `dados/`: Contém a base de dados original do projeto.
-    -   `dadosVenda.xlsx`: A base de dados principal utilizada para a análise e modelagem.
--   `img/`: Armazena os gráficos e visualizações gerados durante a análise.
-    -   `curva_aprendizagem_regressao_linear.png`: Gráfico da curva de aprendizagem do modelo de regressão linear.
--   `notebooks/`: Contém os notebooks Jupyter que detalham o processo do projeto.
-    -   `Projeto_Maximizacao_Receita_01.ipynb`: Notebook inicial com a análise exploratória, pré-processamento e os primeiros passos da modelagem.
-    -   `Projeto_Maximizacao_Receita_Final.ipynb`: Notebook final com a implementação completa do modelo, avaliação, otimização da receita e conclusões.
--   `README.md`: Este arquivo, que fornece uma visão geral detalhada do projeto.
--   `LICENSE.md`: Arquivo contendo os termos da licença do projeto (MIT).
--   `requirements.txt`: Lista de todas as bibliotecas Python e suas versões necessárias para executar o projeto.
+- `dados/`: bases originais utilizadas nos estudos (não são necessárias para rodar a aplicação web; o treino usa `dataset_cafeterias_rj.xlsx`).
+  - `dataset_cafeterias_rj.xlsx`
+  - `dadosVenda.xlsx`
+- `notebooks/`: cadernos Jupyter (EDA e estudos); não são obrigatórios para uso da aplicação.
+  - `Projeto_Maximizacao_Receita_01.ipynb`
+  - `Projeto_Maximizacao_Receita_EDA_Preprocess.ipynb`
+  - `Projeto_Maximizacao_Receita_Final.ipynb`
+- `src/`: código-fonte
+  - `config/paths.py`: caminhos e constantes
+  - `modeling/train_pipeline.py`: pipeline de treino, validação e geração de artefatos
+  - `modeling/train_linear.py`: treino simples (compatível, mas o pipeline é preferível)
+- `models/`: artefatos gerados pelo treino (ex.: `best_model_max_receita.pkl`, `curve_business_metric.csv`, `model_linear.json`, `shap_summary.png`)
+- `docs/`: site estático consumindo `model_linear.json` e `curve_business_metric.csv`
+  - `index.html`
+  - `model_linear.json`
+  - `curve_business_metric.csv`
+- `.github/workflows/ci.yml`: CI para instalar, testar, treinar e publicar `docs/`
+- `tests/`: testes unitários/integrados
+- `requirements.txt`, `README.md`, `LICENSE.md`
 
 ## Base de Dados:
 
-O projeto utiliza o arquivo `dadosVenda.xlsx`, localizado na pasta `dados/`. Este dataset inclui as seguintes colunas principais:
+O projeto utiliza o arquivo `dataset_cafeterias_rj.xlsx` (constante `DADOS_AMOR_A_CAKES`), localizado na pasta `dados/`. Este dataset inclui as seguintes colunas principais:
 
-* `PrecoVenda`: Preço final de venda do produto.
-* `PrecoOriginal`: Preço original do produto antes de qualquer desconto.
-* `Desconto`: Desconto aplicado ao produto.
-* `VendaQtd`: Quantidade de produtos vendidos.
+* `preco_final`: Preço final de venda do produto.
+* `preco_original`: Preço original do produto antes de qualquer desconto.
+* `desconto_pct`: Desconto aplicado ao produto (0–0.04).
+* `quantidade_vendida_dia` e `quantidade_vendida_mes`: Quantidades vendidas.
 
-A base foi sujeita a etapas de pré-processamento, incluindo o escalonamento das colunas numéricas usando `RobustScaler` (para 'Desconto') e `MinMaxScaler` (para 'PrecoVenda', 'PrecoOriginal' e 'VendaQtd') para otimizar a performance do modelo.
+Com base nos testes de normalidade (Shapiro) e homogeneidade de variâncias (Levene), optamos por **não normalizar** (sem scaler) para a Regressão Linear e tratamos outliers com **winsorização por IQR** nas variáveis numéricas.
 
 ## Metodologia de Análise e Modelagem:
 
@@ -77,18 +84,11 @@ O desenvolvimento do projeto seguiu as seguintes etapas:
     * Métricas como RMSE (Root Mean Squared Error) e R² (Coeficiente de Determinação) foram utilizadas para avaliar a performance do modelo.
     * Análise da curva de aprendizagem para verificar *underfitting* ou *overfitting*.
 6.  **Otimização de Receita:**
-    * Com o modelo treinado, foi implementada uma função para simular diferentes cenários de preço e desconto.
-    * O objetivo foi encontrar a combinação que resulta na `VendaQtd` prevista mais alta, levando à maximização da receita (`PrecoVenda * VendaQtd`).
+    * A aplicação web varre descontos entre 0% e 4% (resolução configurável), calcula `preco_final = preco_original * (1 - desconto)` e prevê `quantidade_vendida`. Em seguida, maximiza `receita = preco_final * quantidade_vendida`.
 
 ## Resultados Chave e Recomendações:
 
-A análise de otimização da receita apontou para o seguinte cenário ideal, com base no modelo de Regressão Linear:
-
-* **Preço de Venda Ideal Estimado:** **R$ 19.92**
-* **Desconto Ideal Estimado:** **0.0% (Desconto Zero)**
-* **Melhor Receita Estimada:** **R$ 23.254,72**
-
-Estes resultados sugerem que, dentro do escopo dos dados analisados e das premissas do modelo, a receita máxima é alcançada com um preço de venda específico e sem a aplicação de descontos adicionais. É crucial monitorar a implementação dessas recomendações e reavaliar o modelo periodicamente com novos dados de vendas.
+Os resultados dependem dos coeficientes reais treinados no seu ambiente. A aplicação exibirá o desconto ideal, o preço final e a receita estimada com base no **modelo exportado**. Recomenda-se reavaliar periodicamente e monitorar a elasticidade de demanda em campanhas reais.
 
 ## Tecnologias Utilizadas:
 
@@ -99,14 +99,14 @@ Estes resultados sugerem que, dentro do escopo dos dados analisados e das premis
 * **Matplotlib:** Para criação de gráficos, especialmente a curva de aprendizagem.
 * **Seaborn:** Para visualizações estatísticas e aprimoramento estético dos gráficos.
 
-## Instalação e Uso:
+## Instalação e Uso
 
 Para configurar e executar este projeto em seu ambiente local, siga as instruções abaixo:
 
-1.  **Pré-requisitos:**
-    * Python 3.8+
-    * `pip` (gerenciador de pacotes do Python)
-    * Jupyter Lab ou Jupyter Notebook
+1. **Pré-requisitos**
+   - Python 3.12 (recomendado; CI usa 3.12)
+   - `pip`
+   - (Opcional) Jupyter Lab para explorar os notebooks
 
 2.  **Clone o repositório:**
     ```bash
@@ -115,30 +115,57 @@ Para configurar e executar este projeto em seu ambiente local, siga as instruç�
     ```
     *(Lembre-se de substituir `seu-usuario` pelo seu nome de usuário do GitHub.)*
 
-3.  **Crie o arquivo `requirements.txt`:**
-    * Certifique-se de que está na raiz do projeto.
-    * **No PowerShell (Windows):**
-        ```powershell
-        pip freeze | Out-File -FilePath requirements.txt -Encoding UTF8
-        ```
-    * **No Linux/macOS (ou Git Bash no Windows):**
-        ```bash
-        pip freeze > requirements.txt
-        ```
-    *(**Importante:** Faça isso *depois* de ter todas as bibliotecas usadas nos notebooks instaladas no seu ambiente Python.)*
+3. **Instale as dependências**
+    ```bash
+    pip install -r requirements.txt
+    ```
 
-4.  **Instale as dependências:**
-    * Com o `requirements.txt` criado, instale todas as bibliotecas necessárias:
-        ```bash
-        pip install -r requirements.txt
-        ```
+4. **(Opcional) Acesse e execute os notebooks**
+    ```bash
+    jupyter lab
+    ```
+    * Navegue até `notebooks/` e abra: `Projeto_Maximizacao_Receita_01.ipynb` → `Projeto_Maximizacao_Receita_EDA_Preprocess.ipynb`.
 
-5.  **Acesse e Execute os Notebooks:**
-    * Inicie o Jupyter Lab na raiz do projeto:
-        ```bash
-        jupyter lab
-        ```
-    * Navegue até a pasta `notebooks/` e abra os notebooks na sequência (`Projeto_Maximizacao_Receita_01.ipynb` e `Projeto_Maximizacao_Receita_Final.ipynb`) para reproduzir a análise e os resultados.
+5. **Execute os testes e o pipeline de treino**
+   ```bash
+   # Defina PYTHONPATH para permitir imports dos testes
+   export PYTHONPATH=$(pwd)   # Linux/macOS
+   # No Windows PowerShell: $env:PYTHONPATH = (Get-Location).Path
+
+   pytest -q
+   python -m src.modeling.train_pipeline
+   ```
+   - Artefatos gerados em `models/`: `best_model_max_receita.pkl`, `curve_business_metric.csv`, `model_linear.json`, `shap_summary.png`.
+   - Para a aplicação web, copie (ou use a CI) para `docs/`:
+   ```bash
+   cp models/model_linear.json docs/model_linear.json
+   cp models/curve_business_metric.csv docs/curve_business_metric.csv
+   ```
+
+6. **Suba o site estático localmente**
+   ```bash
+   python -m http.server 8000
+   # Abra http://localhost:8000/docs/
+   ```
+
+## Boas práticas e versão de arquivos
+
+- Artefatos pesados e dados brutos não são versionados (ver `.gitignore`).
+- Os notebooks são materiais de apoio; a aplicação e a CI usam o código em `src/`.
+- A CI
+  - Instala dependências
+  - Executa `pytest` com `PYTHONPATH`
+  - Treina com `python -m src.modeling.train_pipeline`
+  - Copia artefatos para `docs/` e publica GitHub Pages
+
+## Integração com DagsHub (MLflow)
+
+Com credenciais configuradas (secrets), os treinos podem ser registrados no DagsHub via MLflow. Configure:
+
+- `MLFLOW_EXPERIMENT_NAME`: nome do experimento
+- `MLFLOW_TRACKING_URI`, `MLFLOW_TRACKING_USERNAME`, `MLFLOW_TRACKING_PASSWORD` ou token
+
+Em seguida, habilite no pipeline (ou CI) o log de parâmetros, métricas e artefatos (best model e explicabilidade).
 
 ## Licença:
 

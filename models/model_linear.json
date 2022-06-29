@@ -1,0 +1,25 @@
+{
+  "model_type": "LinearRegression",
+  "intercept": 432.0011436253971,
+  "coefficients": {
+    "custo_producao": 6.707980363257417,
+    "preco_original": 277.86466551394926,
+    "desconto_pct": -3611.757148406885,
+    "preco_final": -288.1585121358252
+  },
+  "target": "quantidade_vendida_mes",
+  "features": [
+    "custo_producao",
+    "preco_original",
+    "desconto_pct",
+    "preco_final"
+  ],
+  "preprocessing": {
+    "scaling": "none",
+    "derived": [
+      "receita_dia",
+      "receita_mes"
+    ]
+  },
+  "inference_notes": "Compute preco_final = preco_original * (1 - desconto_pct) before prediction."
+}

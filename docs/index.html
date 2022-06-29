@@ -1,30 +1,355 @@
-<!doctype html>
-<html lang="pt-BR">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Projeto Maximização de Receita</title>
-    <meta name="description" content="Miniatura e atalho para o projeto." />
-    <link rel="icon" type="image/png" href="favicon_logo.png" />
-    <style>
-      html, body { height: 100%; margin: 0; background:#0f1115; color:#e6e9ef; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
-      .wrap { display: grid; place-items: center; height: 100%; padding: 24px; }
-      .card { max-width: 1100px; width: 100%; }
-      img { display:block; max-width:100%; height:auto; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.35); }
-      .links { margin-top: 20px; display:flex; gap:16px; }
-      .btn { display:inline-block; padding:10px 16px; border-radius:10px; background:#22d3ee; color:#0b0f14; text-decoration:none; font-weight:700; }
-      .btn.secondary { background:#1a1f29; color:#e6e9ef; border:1px solid #2a3240; }
-    </style>
-  </head>
-  <body>
-    <div class="wrap">
-      <div class="card">
-        <img src="app_thumbnail.svg" alt="Miniatura do app" />
-        <div class="links">
-          <a class="btn" href="https://github.com/flaviohenriquehb777/Projeto_Maximizacao_Receita" target="_blank" rel="noopener">Ver repositório</a>
-          <a class="btn secondary" href="https://raw.githubusercontent.com/flaviohenriquehb777/Projeto_Maximizacao_Receita/main/docs/app_thumbnail.svg" target="_blank" rel="noopener">Abrir miniatura (raw)</a>
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Maximização de Receita – Cafeterias</title>
+  <link rel="icon" type="image/png" href="favicon_logo.png" />
+  <style>
+    :root {
+      --bg: #0f1115;
+      --panel: #151922;
+      --text: #e5e7eb;
+      --muted: #9aa0a6;
+      --primary: #4f46e5;
+      --accent: #22d3ee;
+      --danger: #ef4444;
+    }
+    html, body { height: 100%; }
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0; background: var(--bg); color: var(--text);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", Arial, sans-serif;
+    }
+    .container { max-width: 960px; margin: 0 auto; padding: 24px; }
+    .card { background: var(--panel); border-radius: 12px; padding: 20px; box-shadow: 0 8px 24px rgba(0,0,0,0.25); }
+    h1 { font-size: 1.6rem; margin: 0 0 12px; }
+    p { color: var(--muted); }
+    label { display:block; margin: 14px 0 6px; }
+    input[type="number"] { width: 100%; padding: 12px; background: #0b0d11; border: 1px solid #2a2f3a; border-radius: 8px; color: var(--text); }
+    .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; align-items: start; }
+    .row + .row { margin-top: 8px; }
+    .btn {
+      margin-top: 16px; padding: 12px 16px; border-radius: 8px; border: none; cursor: pointer;
+      background: linear-gradient(135deg, var(--primary), var(--accent)); color: white; font-weight: 600;
+    }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .result { margin-top: 20px; padding: 16px; background: #0b0d11; border: 1px solid #2a2f3a; border-radius: 8px; }
+    .muted { color: var(--muted); }
+    .footer { margin-top: 28px; font-size: 0.9rem; color: var(--muted); }
+    .code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; background: #0b0d11; padding: 2px 6px; border-radius: 6px; }
+
+    @media (max-width: 768px) {
+      .container { padding: 16px; }
+      .card { padding: 16px; }
+      h1 { font-size: 1.4rem; }
+      .btn { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>Maximização de Receita – Rede de Cafeterias</h1>
+      <p>Use o modelo de regressão linear para estimar a melhor porcentagem de desconto (até 4%) que maximiza a receita mensal.</p>
+
+      <div class="row">
+        <div>
+          <label for="preco_original">Preço Original (R$)</label>
+          <input type="number" id="preco_original" step="0.01" min="0" placeholder="Ex.: 19.90" />
+        </div>
+        <div>
+          <label for="custo_producao">Custo de Produção (R$)</label>
+          <input type="number" id="custo_producao" step="0.01" min="0" placeholder="Ex.: 6.50" />
         </div>
       </div>
+
+      <div class="row">
+        <div>
+          <label for="max_desconto">Desconto Máximo (%)</label>
+          <input type="number" id="max_desconto" step="0.1" min="0" max="4" value="4" />
+          <span class="muted">Padrão: 4%</span>
+        </div>
+        <div>
+          <label for="resolucao">Resolução de Busca (p.p.)</label>
+          <input type="number" id="resolucao" step="0.1" min="0.1" value="0.1" />
+          <span class="muted">Passo da varredura do desconto</span>
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label for="objetivo">Objetivo de Otimização</label>
+          <select id="objetivo">
+            <option value="receita" selected>Maximizar Receita</option>
+            <option value="lucro">Maximizar Lucro (com restrição de custo)</option>
+          </select>
+          <span class="muted">Escolha a métrica principal</span>
+        </div>
+        <div>
+          <label for="mostrar_dataset">Curva de Referência</label>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <input type="checkbox" id="mostrar_dataset" />
+            <span class="muted">Exibir curva média do dataset</span>
+          </div>
+          <span class="muted" id="statusDataset"></span>
+        </div>
+      </div>
+
+      <button class="btn" id="btnCalc" disabled>Calcular melhor desconto</button>
+
+      <div class="result" id="output" hidden>
+        <div id="resumo"></div>
+        <div class="muted" id="detalhe"></div>
+        <div class="muted" id="elasticidade"></div>
+        <div class="muted" id="viabilityMsg"></div>
+        <canvas id="chart" style="margin-top:12px; max-height: 340px;"></canvas>
+        <div class="muted" id="constraintMsg" style="margin-top:8px;"></div>
+      </div>
+      <p class="muted" id="status">Carregando modelo…</p>
     </div>
-  </body>
+
+    <div class="footer">
+      <p>Modelo carregado de <span class="code">docs/model_linear.json</span>. Após treinar, substitua por coeficientes reais gerados pelo script de treino.</p>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script>
+    const state = { model: null, datasetCurve: null };
+
+    async function loadModel() {
+      try {
+        const res = await fetch('model_linear.json');
+        if (!res.ok) throw new Error('Falha ao buscar model_linear.json');
+        const model = await res.json();
+        if (!model || typeof model !== 'object') throw new Error('JSON do modelo inválido');
+        if (!model.coefficients || typeof model.intercept !== 'number') throw new Error('JSON do modelo inválido');
+        state.model = model;
+        document.getElementById('status').textContent = 'Modelo carregado.';
+        document.getElementById('btnCalc').disabled = false;
+      } catch (err) {
+        document.getElementById('status').textContent = 'Modelo não encontrado em docs/model_linear.json. Treine e exporte primeiro.';
+        console.error(err);
+      }
+    }
+
+    async function loadDatasetCurve() {
+      try {
+        const res = await fetch('curve_business_metric.csv');
+        if (!res.ok) throw new Error('CSV não encontrado');
+        const text = await res.text();
+        const lines = text.trim().split(/\r?\n/);
+        const header = lines.shift().split(',');
+        const idxD = header.indexOf('desconto_pct');
+        const idxRev = header.indexOf('mean_revenue');
+        const idxProf = header.indexOf('mean_profit');
+        const xs = [], rev = [], prof = [];
+        for (const line of lines) {
+          const cols = line.split(',');
+          const d = parseFloat(cols[idxD] || '0');
+          const r = parseFloat(cols[idxRev] || '0');
+          const p = parseFloat(cols[idxProf] || '0');
+          xs.push((d * 100).toFixed(2));
+          rev.push(r);
+          prof.push(p);
+        }
+        state.datasetCurve = { xs, rev, prof };
+        document.getElementById('statusDataset').textContent = 'Curva média carregada.';
+      } catch (e) {
+        document.getElementById('statusDataset').textContent = 'Curva média não disponível.';
+        console.warn(e);
+      }
+    }
+
+    function predictQuantity(precoOriginal, custoProducao, descontoPct) {
+      const m = state.model;
+      const precoFinal = precoOriginal * (1 - descontoPct);
+      const feats = {
+        custo_producao: custoProducao,
+        preco_original: precoOriginal,
+        desconto_pct: descontoPct,
+        preco_final: precoFinal,
+      };
+      let y = m.intercept;
+      for (const [k, v] of Object.entries(m.coefficients)) {
+        y += (v || 0) * (feats[k] ?? 0);
+      }
+      return Math.max(0, y);
+    }
+
+    function formatBRL(v) {
+      return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+
+    let chart;
+
+    function onCalc() {
+      const precoOriginal = parseFloat(document.getElementById('preco_original').value);
+      const custoProducao = parseFloat(document.getElementById('custo_producao').value);
+      const maxDescontoPct = Math.min(4, Math.max(0, parseFloat(document.getElementById('max_desconto').value))) / 100.0;
+      const stepPct = Math.max(0.001, parseFloat(document.getElementById('resolucao').value) / 100.0);
+
+      if (!state.model) return;
+      if (!isFinite(precoOriginal) || !isFinite(custoProducao) || precoOriginal <= 0) {
+        alert('Preencha os valores corretamente.');
+        return;
+      }
+
+      const objetivo = document.getElementById('objetivo').value; // 'receita' | 'lucro'
+      let best = { desconto: 0, receita: -Infinity, lucro: -Infinity, qtd: 0, precoFinal: 0 };
+      const xs = [];
+      const receitaArr = [];
+      const lucroArr = [];
+      const invalidoArr = [];
+      let constraintHit = false;
+      for (let d = 0; d <= maxDescontoPct + 1e-12; d += stepPct) {
+        const qtd = predictQuantity(precoOriginal, custoProducao, d);
+        const precoFinal = precoOriginal * (1 - d);
+        const receita = precoFinal * qtd;
+        const lucro = (precoFinal - custoProducao) * qtd;
+        const invalido = precoFinal < custoProducao;
+        if (invalido) constraintHit = true;
+        xs.push((d * 100).toFixed(2));
+        receitaArr.push(receita);
+        lucroArr.push(invalido ? null : lucro);
+        invalidoArr.push(invalido);
+        const cand = { desconto: d, receita, lucro, qtd, precoFinal };
+        if (objetivo === 'receita') {
+          if (receita > best.receita) best = cand;
+        } else {
+          if (!invalido && lucro > best.lucro) best = cand;
+        }
+      }
+
+      // índice do ponto ótimo
+      const bestLabel = (best.desconto * 100).toFixed(2);
+      const bestIndex = xs.indexOf(bestLabel);
+
+      const pct = (best.desconto * 100).toFixed(2);
+      const resumo = `Desconto ideal estimado: ${pct}% | ${objetivo === 'receita' ? 'Receita' : 'Lucro'}: ${formatBRL(objetivo === 'receita' ? best.receita : best.lucro)} | Qtd prevista: ${best.qtd.toFixed(0)} | Preço final: ${formatBRL(best.precoFinal)}`;
+      document.getElementById('resumo').textContent = resumo;
+      document.getElementById('detalhe').textContent = 'Nota: Resultado depende dos coeficientes do modelo treinado (sem normalização).';
+      document.getElementById('output').hidden = false;
+
+      // Elasticidade aproximada (diferença finita)
+      let elastMsg = '';
+      if (bestIndex >= 0) {
+        const delta = Math.max(stepPct / 2, 0.005);
+        const d1 = Math.max(0, best.desconto - delta);
+        const d2 = Math.min(maxDescontoPct, best.desconto + delta);
+        const q1 = predictQuantity(precoOriginal, custoProducao, d1);
+        const q2 = predictQuantity(precoOriginal, custoProducao, d2);
+        const p1 = precoOriginal * (1 - d1);
+        const p2 = precoOriginal * (1 - d2);
+        const qmid = (q1 + q2) / 2;
+        const pmid = (p1 + p2) / 2;
+        if (qmid > 0 && pmid > 0 && Math.abs(p2 - p1) > 1e-9) {
+          const dQ_over_Q = (q2 - q1) / qmid;
+          const dP_over_P = (p2 - p1) / pmid;
+          const elasticity = dQ_over_Q / dP_over_P; // esperado negativo
+          elastMsg = `Elasticidade preço-da-demanda (aprox.): ${elasticity.toFixed(2)}`;
+        }
+      }
+      document.getElementById('elasticidade').textContent = elastMsg;
+
+      // Viabilidade
+      let viability = '';
+      const anyLucro = lucroArr.some(v => v !== null);
+      if (objetivo === 'lucro') {
+        if (!anyLucro) {
+          viability = 'Viabilidade: lucro inviável para qualquer desconto > 0 com custo informado.';
+        } else if (best.desconto === 0) {
+          viability = 'Viabilidade: melhor lucro em 0% de desconto; pontos acima do custo são limitados.';
+        } else {
+          viability = 'Viabilidade: desconto em lucro viável dentro da restrição de custo.';
+        }
+      } else {
+        viability = 'Viabilidade: receita otimizada independentemente da restrição de custo.';
+      }
+      document.getElementById('viabilityMsg').textContent = viability;
+
+      // Atualiza/Cria gráfico
+      const ctx = document.getElementById('chart');
+      const datasets = [
+          {
+            label: 'Receita (R$)',
+            data: receitaArr,
+            borderColor: '#22d3ee',
+            backgroundColor: 'rgba(34, 211, 238, 0.2)',
+            tension: 0.25,
+            borderWidth: 2,
+          },
+          {
+            label: 'Lucro (R$) – restringido',
+            data: lucroArr,
+            borderColor: '#4f46e5',
+            backgroundColor: 'rgba(79, 70, 229, 0.2)',
+            tension: 0.25,
+            borderWidth: 2,
+          }
+        ];
+
+      // marcador do ponto ótimo
+      const markerData = xs.map((_, i) => (i === bestIndex ? (objetivo === 'receita' ? receitaArr[i] : lucroArr[i]) : null));
+      datasets.push({
+        label: objetivo === 'receita' ? 'Ótimo (receita)' : 'Ótimo (lucro)',
+        data: markerData,
+        borderColor: objetivo === 'receita' ? '#22d3ee' : '#4f46e5',
+        backgroundColor: 'rgba(255,255,255,0.85)',
+        pointRadius: 6,
+        pointHoverRadius: 7,
+        showLine: false,
+      });
+      const showDataset = document.getElementById('mostrar_dataset').checked && state.datasetCurve;
+      if (showDataset) {
+        datasets.push({
+          label: 'Receita média (dataset)',
+          data: state.datasetCurve.rev,
+          borderColor: '#10b981',
+          backgroundColor: 'rgba(16, 185, 129, 0.15)',
+          tension: 0.25,
+          borderWidth: 2,
+          borderDash: [6, 3],
+        });
+        datasets.push({
+          label: 'Lucro médio (dataset)',
+          data: state.datasetCurve.prof,
+          borderColor: '#f59e0b',
+          backgroundColor: 'rgba(245, 158, 11, 0.15)',
+          tension: 0.25,
+          borderWidth: 2,
+          borderDash: [6, 3],
+        });
+      }
+
+      const data = {
+        labels: xs,
+        datasets
+      };
+      const options = {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: { title: { display: true, text: 'Desconto (%)', color: '#e5e7eb' }, ticks: { color: '#9aa0a6' }, grid: { color: '#242938' } },
+          y: { title: { display: true, text: 'Valor (R$)', color: '#e5e7eb' }, ticks: { color: '#9aa0a6' }, grid: { color: '#242938' } },
+        },
+        plugins: {
+          legend: { labels: { color: '#e5e7eb' } },
+          tooltip: { mode: 'index', intersect: false }
+        }
+      };
+      if (chart) { chart.data = data; chart.options = options; chart.update(); }
+      else { chart = new Chart(ctx, { type: 'line', data, options }); }
+
+      document.getElementById('constraintMsg').textContent = (objetivo === 'lucro' && constraintHit) ? 'Observação: pontos de lucro foram omitidos quando o preço final fica abaixo do custo.' : '';
+    }
+
+    document.getElementById('btnCalc').addEventListener('click', onCalc);
+    loadModel();
+    loadDatasetCurve();
+    document.getElementById('mostrar_dataset').addEventListener('change', () => { if (!document.getElementById('output').hidden) onCalc(); });
+    document.getElementById('objetivo').addEventListener('change', () => { if (!document.getElementById('output').hidden) onCalc(); });
+  </script>
+</body>
 </html>
