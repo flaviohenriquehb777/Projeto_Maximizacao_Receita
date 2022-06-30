@@ -48,6 +48,7 @@ Este projeto foca na aplicação de Machine Learning (Regressão Linear) para an
   - `Projeto_Maximizacao_Receita_01.ipynb`
   - `Projeto_Maximizacao_Receita_EDA_Preprocess.ipynb`
   - `Projeto_Maximizacao_Receita_Final.ipynb`
+  - `04_Diagnostico_Receita_e_Politicas.ipynb` (diagnóstico de receita e política ótima)
 - `src/`: código-fonte
   - `config/paths.py`: caminhos e constantes
   - `modeling/train_pipeline.py`: pipeline de treino, validação e geração de artefatos
@@ -57,6 +58,10 @@ Este projeto foca na aplicação de Machine Learning (Regressão Linear) para an
   - `index.html`
   - `model_linear.json`
   - `curve_business_metric.csv`
+  - `curve_business_metric.png`
+  - `diag_holdout_scatter.png`
+  - `diag_residuos.png`
+  - `policy_otima_resumo.csv`
 - `.github/workflows/ci.yml`: CI para instalar, testar, treinar e publicar `docs/`
 - `tests/`: testes unitários/integrados
 - `requirements.txt`, `README.md`, `LICENSE.md`
@@ -134,6 +139,11 @@ Para configurar e executar este projeto em seu ambiente local, siga as instruç�
     jupyter lab
     ```
     * Navegue até `notebooks/` e abra: `Projeto_Maximizacao_Receita_01.ipynb` → `Projeto_Maximizacao_Receita_EDA_Preprocess.ipynb`.
+    * Para diagnóstico profissional e política de desconto, execute `04_Diagnostico_Receita_e_Politicas.ipynb`:
+      - Detecta o alvo (receita ou quantidade) dos artefatos de treino.
+      - Gera gráficos de diagnóstico (holdout: real vs predito, resíduos).
+      - Publica curva de negócio e resumo da política ótima em `docs/`.
+      - Saídas: `docs/curve_business_metric.png`, `docs/diag_holdout_scatter.png`, `docs/diag_residuos.png`, `docs/policy_otima_resumo.csv`.
 
 5. **Execute os testes e o pipeline de treino**
    ```bash
@@ -145,6 +155,7 @@ Para configurar e executar este projeto em seu ambiente local, siga as instruç�
    python -m src.modeling.train_pipeline
    ```
    - Artefatos gerados em `models/`: `best_model_max_receita.pkl`, `model_best.onnx`, `model_best_meta.json`, `curve_business_metric.csv`, `model_linear.json`, `shap_summary.png`.
+   - O snapshot `models/metrics_snapshot.json` inclui o campo `target` (alvo do treino) para consumo por testes e notebooks.
    - O pipeline publica automaticamente em `docs/`: `model_best.onnx`, `model_best_meta.json`, `curve_business_metric.csv`, além de manter `model_linear.json` para compatibilidade.
 
 6. **Suba o site estático localmente**
@@ -177,7 +188,7 @@ Para configurar e executar este projeto em seu ambiente local, siga as instruç�
      - `docs/model_best.onnx` e `docs/model_best_meta.json` (ordem das features) para a visualização BEST
      - `docs/curve_business_metric.csv` (curva média de negócio)
  - Dependências adicionadas para exportação e execução do ONNX: `onnx`, `skl2onnx`, `onnxmltools`. No front-end, o `index.html` importa `onnxruntime-web` via CDN.
- - Melhorias no XGBoost: passamos a usar restrições monotônicas alinhadas ao domínio (`custo_producao`, `preco_original` e `preco_final` com efeito negativo; `desconto_pct` com efeito positivo), regularização (`reg_lambda`, `min_child_weight`), e configuração de busca com `tree_method='hist'`. Isso ajuda a manter previsões consistentes e estáveis para a maximização de receita/lucro.
+ - Melhorias no XGBoost: as restrições monotônicas são condicionais ao alvo. Para alvo **receita** (`receita_*`), mantemos restrições **neutras** (desativadas) para evitar vieses; para alvo **quantidade** (`quantidade_*`), aplicamos sinais alinhados ao domínio (`custo_producao`, `preco_original` e `preco_final` negativos; `desconto_pct` positivo), com regularização (`reg_lambda`, `min_child_weight`) e `tree_method='hist'` para estabilidade e desempenho.
  - Observação: a escolha do Best Model (tipicamente não linear, como `GradientBoosting` ou `XGBoost`) impacta as curvas e o ponto ótimo. A execução ONNX no navegador permite previsões fiéis sem servidor, mantendo uma experiência profissional e estática.
 
 ## Política de datas de commits (Jan–Jun/2022)

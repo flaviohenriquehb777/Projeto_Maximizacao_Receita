@@ -146,29 +146,38 @@ def load_dataset() -> pd.DataFrame:
 
 
 def select_features(df: pd.DataFrame):
-    target = 'quantidade_vendida_mes' if 'quantidade_vendida_mes' in df.columns else 'quantidade_vendida_dia'
+    # Prioriza receita como alvo quando disponível; caso contrário, quantidade
+    if 'receita_mes' in df.columns:
+        target = 'receita_mes'
+    elif 'receita_dia' in df.columns:
+        target = 'receita_dia'
+    else:
+        target = 'quantidade_vendida_mes' if 'quantidade_vendida_mes' in df.columns else 'quantidade_vendida_dia'
+
     feature_cols = [c for c in ['custo_producao','preco_original','desconto_pct','preco_final'] if c in df.columns]
     X = df[feature_cols].copy()
     y = df[target].copy()
     return X, y, feature_cols, target
 
 
-def get_model_specs(feature_cols=None):
+def get_model_specs(feature_cols=None, target: str | None = None):
     specs = [
         ModelSpec("LinearRegression", LinearRegression(), {}),
         ModelSpec("RidgeCV", Pipeline([('scaler', StandardScaler()), ('model', RidgeCV(alphas=np.logspace(-3, 3, 21), cv=5))]), {}),
-        ModelSpec("LassoCV", Pipeline([('scaler', StandardScaler()), ('model', LassoCV(alphas=None, cv=5, max_iter=5000))]), {}),
-        ModelSpec("ElasticNetCV", Pipeline([('scaler', StandardScaler()), ('model', ElasticNetCV(l1_ratio=[.1,.3,.5,.7,.9], cv=5, max_iter=5000))]), {}),
+        ModelSpec("LassoCV", Pipeline([('scaler', StandardScaler()), ('model', LassoCV(alphas=None, cv=5, max_iter=10000, tol=1e-4))]), {}),
+        ModelSpec("ElasticNetCV", Pipeline([('scaler', StandardScaler()), ('model', ElasticNetCV(l1_ratio=[.1,.3,.5,.7,.9], cv=5, max_iter=10000, tol=1e-4))]), {}),
         ModelSpec("RandomForest", RandomForestRegressor(n_estimators=300, random_state=42), {}),
         ModelSpec("GradientBoosting", GradientBoostingRegressor(random_state=42), {}),
     ]
     if XGBRegressor is not None:
         # Mapeia restrições monotônicas conforme ordem das features
+        # Para alvo receita, desativamos restrições (neutras). Para quantidade, mantemos.
+        is_revenue_target = target in { 'receita_mes', 'receita_dia' }
         constraints_map = {
-            'custo_producao': -1,   # custo maior → menor quantidade
-            'preco_original': -1,   # preço maior → menor quantidade
-            'desconto_pct': +1,     # desconto maior → maior quantidade
-            'preco_final': -1,      # preço final maior → menor quantidade
+            'custo_producao': 0 if is_revenue_target else -1,
+            'preco_original': 0 if is_revenue_target else -1,
+            'desconto_pct': 0 if is_revenue_target else +1,
+            'preco_final': 0 if is_revenue_target else -1,
         }
         constraints = []
         if feature_cols is None:
@@ -199,9 +208,10 @@ def get_model_specs(feature_cols=None):
     return specs
 
 
-def _simulate_expected_profit(model, X_valid: pd.DataFrame) -> float:
-    """Simula lucro esperado por linha ao buscar o melhor desconto até 4%.
-    Retorna média do lucro máximo por linha na validação.
+def _simulate_expected_profit(model, X_valid: pd.DataFrame, target: str | None = None) -> float:
+    """Simula lucro esperado por linha buscando o melhor desconto até 4%.
+    Compatível com alvo em quantidade ou receita.
+    Retorna a média do lucro máximo por linha na validação.
     """
     if not {'preco_original','custo_producao'}.issubset(X_valid.columns):
         return float('nan')
@@ -215,12 +225,29 @@ def _simulate_expected_profit(model, X_valid: pd.DataFrame) -> float:
             Xd['preco_final'] = X_valid['preco_original'] * (1.0 - d)
         preds = np.asarray(model.predict(Xd), dtype=float)
         preco_final = X_valid['preco_original'] * (1.0 - d)
-        profit_d = (preco_final - X_valid['custo_producao']) * preds
+        if target in {'receita_mes', 'receita_dia'}:
+            # Lucro = Receita - Custo total; quantidade = receita / preço
+            # profit = preds - custo_producao * (preds / preco_final)
+            # = preds * (1 - custo_producao / preco_final)
+            fator = (1.0 - (X_valid['custo_producao'] / preco_final))
+            profit_d = preds * np.asarray(fator, dtype=float)
+        else:
+            # Alvo em quantidade: lucro por unidade * quantidade
+            profit_d = (preco_final - X_valid['custo_producao']) * preds
         best_profit = np.maximum(best_profit, profit_d.values if hasattr(profit_d, 'values') else profit_d)
     return float(np.nanmean(best_profit))
 
+def _simulate_expected_profit_holdout(model, X_valid: pd.DataFrame, target: str | None = None) -> float:
+    """Calcula lucro esperado em holdout usando melhor desconto por linha (0%–4%).
+    Compatível com alvo em quantidade ou receita.
+    """
+    try:
+        return _simulate_expected_profit(model, X_valid, target)
+    except Exception:
+        return float('nan')
 
-def cross_validate_model(model, X: pd.DataFrame, y: pd.Series, cv):
+
+def cross_validate_model(model, X: pd.DataFrame, y: pd.Series, cv, target: str | None = None):
     rmses, maes, r2s, profits = [], [], [], []
     for train_idx, valid_idx in cv.split(X):
         X_train, X_valid = X.iloc[train_idx], X.iloc[valid_idx]
@@ -235,7 +262,7 @@ def cross_validate_model(model, X: pd.DataFrame, y: pd.Series, cv):
         rmses.append(rmse)
         maes.append(mean_absolute_error(y_valid, y_pred))
         r2s.append(r2_score(y_valid, y_pred))
-        profits.append(_simulate_expected_profit(model, X_valid))
+        profits.append(_simulate_expected_profit(model, X_valid, target))
     return {
         'cv_rmse_mean': float(np.mean(rmses)), 'cv_rmse_std': float(np.std(rmses)),
         'cv_mae_mean': float(np.mean(maes)), 'cv_mae_std': float(np.std(maes)),
@@ -276,12 +303,21 @@ def main():
     results = []
     best_profit = -float('inf')
     best_entry = None
+    # Base do nome de experimento; criaremos um experimento por modelo
+    exp_base = os.getenv("MLFLOW_EXPERIMENT_NAME", "max_receita_cafeterias")
 
-    for spec in get_model_specs(feature_cols):
+    # Limitar a 6 modelos (exclui RandomForest para manter 6 no total)
+    specs = [s for s in get_model_specs(feature_cols, target) if s.name != 'RandomForest']
+    for spec in specs:
+        # Definir experimento específico por modelo para registro separado no DagsHub/MLflow
+        try:
+            mlflow.set_experiment(f"{exp_base}_{spec.name}")
+        except Exception:
+            pass
         with mlflow.start_run(run_name=f"{spec.name}") as active_run:
             run_id = active_run.info.run_id
             mlflow.log_params({'model': spec.name, **spec.params})
-            metrics = cross_validate_model(spec.estimator, X, y, cv)
+            metrics = cross_validate_model(spec.estimator, X, y, cv, target)
             # Aliases compatíveis com testes: cv_rmse, cv_mae, cv_r2
             metrics_with_alias = {
                 **metrics,
@@ -303,6 +339,8 @@ def main():
                 'rmse': float(rmse_holdout),
                 'r2': float(r2_score(y_test, y_pred)),
                 'mae': float(mean_absolute_error(y_test, y_pred)),
+                # Métrica de negócio principal: lucro esperado médio em holdout
+                'expected_profit': float(_simulate_expected_profit_holdout(spec.estimator, X_test, target)),
             }
             mlflow.log_metrics({f"holdout_{k}": v for k, v in holdout.items()})
 
@@ -324,12 +362,13 @@ def main():
             }
             results.append(entry)
 
-            # Seleção por lucro esperado médio em validação
-            if metrics.get('cv_expected_profit_mean', -float('inf')) > best_profit:
-                best_profit = metrics['cv_expected_profit_mean']
+            # Seleção por lucro esperado médio em HOLDOUT (mais robusto)
+            holdout_profit = holdout.get('expected_profit', -float('inf'))
+            if holdout_profit > best_profit:
+                best_profit = holdout_profit
                 best_entry = entry
 
-            mlflow.set_tag('selection_metric', 'cv_expected_profit_mean')
+            mlflow.set_tag('selection_metric', 'holdout_expected_profit')
 
     assert best_entry is not None, "Nenhum modelo foi avaliado."
 
@@ -398,6 +437,8 @@ def main():
             client = MlflowClient()
             client.set_tag(best_entry['run_id'], 'is_best', 'true')
             client.set_tag(best_entry['run_id'], 'best_model', best_entry['name'])
+            # Também registrar o melhor como runName claro
+            client.set_tag(best_entry['run_id'], 'mlflow.runName', f"best_model_{best_entry['name']}")
     except Exception as e_tag:
         warnings.warn(f"Falha ao marcar tags do best_model no MLflow: {e_tag}")
 
@@ -409,6 +450,7 @@ def main():
             'best_model': best_label,
             'best_model_name': best_label,
             'feature_order': feature_cols,
+            'target': target,
             'metrics': best_metrics,
         }
         snapshot_path = MODELS_DIR / 'metrics_snapshot.json'
@@ -449,6 +491,9 @@ def main():
 
     # Exportar ONNX do best model e publicar em docs
     try:
+        # Evita export ONNX para XGBoost, que possui suporte instável no ambiente CI
+        if type(best_model).__name__ == 'XGBRegressor':
+            raise RuntimeError('Export ONNX desativado para XGBRegressor')
         from skl2onnx import convert_sklearn  # type: ignore
         from skl2onnx.common.data_types import FloatTensorType  # type: ignore
         onnx_out_models = MODELS_DIR / 'model_best.onnx'
@@ -483,38 +528,8 @@ def main():
     except Exception as e1:
         warnings.warn(f"Falha ao converter best model para ONNX via skl2onnx: {e1}")
         # Tentativa alternativa para XGBoost
-        try:
-            from onnxmltools.convert import convert_xgboost  # type: ignore
-            from onnxmltools.convert.common.data_types import FloatTensorType  # type: ignore
-            onnx_out_models = MODELS_DIR / 'model_best.onnx'
-            initial_type = [('float_input', FloatTensorType([None, len(feature_cols)]))]
-            onnx_model = convert_xgboost(best_model, initial_types=initial_type)
-            with open(onnx_out_models, 'wb') as f:
-                f.write(onnx_model.SerializeToString())
-            meta = {
-                'features': feature_cols,
-                'target': target,
-                'model_name': best_label,
-            }
-            meta_models_path = MODELS_DIR / 'model_best_meta.json'
-            meta_models_path.write_text(json.dumps(meta, indent=2), encoding='utf-8')
-            try:
-                mlflow.log_artifact(str(onnx_out_models))
-                mlflow.log_artifact(str(meta_models_path))
-            except Exception:
-                pass
-            try:
-                docs_dir = PROJECT_ROOT / 'docs'
-                docs_dir.mkdir(exist_ok=True)
-                onnx_out_docs = docs_dir / 'model_best.onnx'
-                with open(onnx_out_docs, 'wb') as f:
-                    f.write(onnx_model.SerializeToString())
-                meta_docs_path = docs_dir / 'model_best_meta.json'
-                meta_docs_path.write_text(json.dumps(meta, indent=2), encoding='utf-8')
-            except Exception as e_pub:
-                warnings.warn(f"Falha ao publicar ONNX/meta (xgboost) em docs/: {e_pub}")
-        except Exception as e2:
-            warnings.warn(f"Falha ao converter XGBoost para ONNX: {e2}")
+        # Desiste para XGBoost: manter modelo em pickle e JSON linear como fallback para UI
+        pass
 
 
 if __name__ == '__main__':

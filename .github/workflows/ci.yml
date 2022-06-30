@@ -61,6 +61,14 @@ jobs:
           python -m src.modeling.train_pipeline
           cp models/model_linear.json docs/model_linear.json
           if [ -f models/curve_business_metric.csv ]; then cp models/curve_business_metric.csv docs/curve_business_metric.csv; fi
+          # Copiar artefatos adicionais, se existirem
+          if [ -f models/model_best.onnx ]; then cp models/model_best.onnx docs/model_best.onnx; fi
+          if [ -f models/model_best_meta.json ]; then cp models/model_best_meta.json docs/model_best_meta.json; fi
+          if [ -f models/metrics_snapshot.json ]; then cp models/metrics_snapshot.json docs/metrics_snapshot.json; fi
+          if [ -f models/curve_business_metric.png ]; then cp models/curve_business_metric.png docs/curve_business_metric.png; fi
+          if [ -f docs/diag_holdout_scatter.png ]; then echo "diag_holdout_scatter.png já está em docs/"; fi
+          if [ -f docs/diag_residuos.png ]; then echo "diag_residuos.png já está em docs/"; fi
+          if [ -f docs/policy_otima_resumo.csv ]; then echo "policy_otima_resumo.csv já está em docs/"; fi
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

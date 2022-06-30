@@ -24,7 +24,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
+          python-version: "3.12"
           cache: 'pip'
 
       - name: Install dependencies
@@ -79,11 +79,18 @@ jobs:
           dvc pull -r dagshub dados/dadosVenda.xlsx.dvc || echo "DVC pull falhou; continuando com fallback"
           dvc checkout dados/dadosVenda.xlsx.dvc || echo "DVC checkout falhou; continuando com fallback"
 
-      - name: Treinar e gerar métricas (fallback simples)
+      - name: Treinar e publicar artefatos
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+          CI: true
         run: |
-          mkdir -p artifacts models || true
-          python src/train.py || true
-          python src/experiments.py || true
+          python -m src.modeling.train_pipeline
+          # Publicar artefatos relevantes em docs/
+          cp models/model_linear.json docs/model_linear.json
+          if [ -f models/curve_business_metric.csv ]; then cp models/curve_business_metric.csv docs/curve_business_metric.csv; fi
+          if [ -f models/model_best.onnx ]; then cp models/model_best.onnx docs/model_best.onnx; fi
+          if [ -f models/model_best_meta.json ]; then cp models/model_best_meta.json docs/model_best_meta.json; fi
+          if [ -f models/metrics_snapshot.json ]; then cp models/metrics_snapshot.json docs/metrics_snapshot.json; fi
 
       - name: Job summary (metrics)
         if: ${{ always() }}

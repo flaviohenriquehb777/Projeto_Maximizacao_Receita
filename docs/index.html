@@ -116,6 +116,53 @@
       <p class="muted" id="status">Carregando modelo…</p>
     </div>
 
+    <div class="card" id="cardDiag" style="margin-top:16px;">
+      <h2 style="margin-top:0;">Diagnósticos do Modelo</h2>
+      <p class="muted">Gráficos gerados pelo Notebook 04 para validação: curva de negócio e análises de holdout.</p>
+      <style>
+        /* Layout específico para diagnóstico: 1 coluna, 3 linhas */
+        #diagImages { display: grid; grid-template-columns: 1fr; gap: 16px; }
+        #diagImages .diag-block { background: #0b0d11; border: 1px solid #2a2f3a; border-radius: 8px; padding: 12px; }
+        #diagImages label { display:block; margin-bottom: 8px; }
+        /* Padrão para imagens de diagnóstico */
+        #imgCurve, #imgResiduos { width: 100%; border-radius: 8px; border: 1px solid #2a2f3a; }
+        /* Específico: Holdout reduzido a 50% e centralizado, com limite de largura */
+        #imgHoldout { width: 50% !important; max-width: 600px; border-radius: 8px; border: 1px solid #2a2f3a; display: block; margin: 0 auto; }
+      </style>
+      <div id="diagImages">
+        <div class="diag-block">
+          <label>Curva de negócio (receita/lucro vs desconto)</label>
+          <img id="imgCurve" alt="Curva de negócio" />
+          <div class="muted" style="margin-top:6px;">
+            Fonte: <span class="code">docs/curve_business_metric.csv</span>
+          </div>
+        </div>
+        <div class="diag-block">
+          <label>Holdout: Real vs Predito</label>
+          <img id="imgHoldout" alt="Diagnóstico holdout" />
+        </div>
+        <div class="diag-block">
+          <label>Resíduos (holdout)</label>
+          <img id="imgResiduos" alt="Resíduos" />
+        </div>
+      </div>
+      <p class="muted" id="diagStatus"></p>
+    </div>
+
+    <div class="card" id="cardPolicy" style="margin-top:16px;">
+      <h2 style="margin-top:0;">Política Ótima (amostra)</h2>
+      <p class="muted">Resumo por observação com desconto ótimo e métricas previstas.</p>
+      <div style="overflow:auto;">
+        <table id="policyTable" style="width:100%; border-collapse:collapse;">
+          <thead>
+            <tr id="policyHeader"></tr>
+          </thead>
+          <tbody id="policyBody"></tbody>
+        </table>
+      </div>
+      <p class="muted" id="policyStatus"></p>
+    </div>
+
     <div class="footer">
       <p>Modelo carregado de <span class="code">docs/model_linear.json</span>. Após treinar, substitua por coeficientes reais gerados pelo script de treino.</p>
     </div>
@@ -412,6 +459,56 @@
     document.getElementById('mostrar_dataset').addEventListener('change', () => { if (!document.getElementById('output').hidden) onCalc(); });
     document.getElementById('visualizacao').addEventListener('change', () => { if (!document.getElementById('output').hidden) onCalc(); });
     document.getElementById('objetivo').addEventListener('change', () => { if (!document.getElementById('output').hidden) onCalc(); });
+  </script>
+  <script>
+    function initDiagnostics() {
+      const status = document.getElementById('diagStatus');
+      let ok = 0, total = 3;
+      const imgCurve = document.getElementById('imgCurve');
+      const imgHoldout = document.getElementById('imgHoldout');
+      const imgRes = document.getElementById('imgResiduos');
+      function mark(img) { img.style.display = 'block'; ok++; status.textContent = ok ? '' : 'Diagnósticos não disponíveis.'; }
+      function hide(img) { img.style.display = 'none'; status.textContent = 'Alguns diagnósticos não estão disponíveis.'; }
+      imgCurve.onload = () => mark(imgCurve);
+      imgCurve.onerror = () => hide(imgCurve);
+      imgCurve.src = 'curve_business_metric.png';
+      imgHoldout.onload = () => mark(imgHoldout);
+      imgHoldout.onerror = () => hide(imgHoldout);
+      imgHoldout.src = 'diag_holdout_scatter.png';
+      imgRes.onload = () => mark(imgRes);
+      imgRes.onerror = () => hide(imgRes);
+      imgRes.src = 'diag_residuos.png';
+    }
+
+    async function loadPolicyCsv() {
+      const status = document.getElementById('policyStatus');
+      const head = document.getElementById('policyHeader');
+      const body = document.getElementById('policyBody');
+      try {
+        const res = await fetch('policy_otima_resumo.csv');
+        if (!res.ok) throw new Error('CSV não encontrado');
+        const text = await res.text();
+        const lines = text.trim().split(/\r?\n/);
+        const header = lines.shift().split(',');
+        // Monta cabeçalho
+        head.innerHTML = header.map(h => `<th style=\"text-align:left; border-bottom:1px solid #2a2f3a; padding:6px; color:#e5e7eb;\">${h}</th>`).join('');
+        // Primeiras 20 linhas
+        const maxRows = Math.min(20, lines.length);
+        let rowsHtml = '';
+        for (let i = 0; i < maxRows; i++) {
+          const cols = lines[i].split(',');
+          rowsHtml += '<tr>' + cols.map(c => `<td style=\"padding:6px; border-bottom:1px solid #22273a; color:#cbd5e1;\">${c}</td>`).join('') + '</tr>';
+        }
+        body.innerHTML = rowsHtml;
+        status.textContent = `Exibindo ${maxRows} de ${lines.length} linhas. Arquivo completo disponível em docs/policy_otima_resumo.csv.`;
+      } catch (e) {
+        status.textContent = 'Resumo de política não disponível.';
+        console.warn(e);
+      }
+    }
+    // Inicializa diagnósticos e tabela após definir as funções
+    initDiagnostics();
+    loadPolicyCsv();
   </script>
 </body>
 </html>
