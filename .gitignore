@@ -17,6 +17,9 @@ models/*.pkl
 models/*.joblib
 models/shap_summary.png
 
+# Reports and schedules (do not version)
+report/
+
 # Data (use external storage; commit samples only if needed)
 dados/*.xlsx
 

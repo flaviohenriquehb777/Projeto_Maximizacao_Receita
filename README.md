@@ -1,5 +1,9 @@
 # Aplicação Web – Maximização de Receita
 
+[![Abrir aplicação (GitHub Pages)](docs/favicon_logo.png)](https://flaviohenriquehb777.github.io/Projeto_Maximizacao_Receita/)
+
+Abra a aplicação estática em: https://flaviohenriquehb777.github.io/Projeto_Maximizacao_Receita/
+
 [![Abrir a aplicação](docs/app_thumbnail.svg)](https://flaviohenriquehb777.github.io/Projeto_Maximizacao_Receita/)
 
 Abra a aplicação acima. Abaixo, segue a documentação completa do projeto com o fluxo atualizado.
