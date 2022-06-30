@@ -56,14 +56,37 @@ def init_tracking():
     tracking_uri_env = os.getenv("MLFLOW_TRACKING_URI")
     username = os.getenv("MLFLOW_TRACKING_USERNAME") or os.getenv("DAGSHUB_USERNAME")
     password = os.getenv("MLFLOW_TRACKING_PASSWORD") or os.getenv("DAGSHUB_TOKEN")
+    token = os.getenv("DAGSHUB_TOKEN")
+
+    # Registrar token no cliente DagsHub antes de inicializar MLflow
+    if dagshub is not None and token:
+        try:
+            import dagshub.auth  # type: ignore
+            dagshub.auth.add_token(token)  # type: ignore
+        except Exception as e:
+            warnings.warn(f"Falha ao registrar token DagsHub: {e}")
+
+    # Inicializar DagsHub (isso pode configurar o MLflow tracking automaticamente)
+    if dagshub is not None and owner and repo:
+        try:
+            dagshub.init(
+                repo_owner=owner,
+                repo_name=repo,
+                mlflow=True,
+            )
+        except Exception as e:
+            warnings.warn(f"Falha ao iniciar DagsHub: {e}")
+
+    # Garantir que MLflow leia credenciais via env
+    if username and password:
+        os.environ.setdefault("MLFLOW_TRACKING_USERNAME", username)
+        os.environ.setdefault("MLFLOW_TRACKING_PASSWORD", password)
 
     # Se credenciais estiverem presentes, preferir URI com basic auth embutida
     if owner and repo:
         try:
-            if username and password:
-                tracking_uri = f"https://{username}:{password}@dagshub.com/{owner}/{repo}.mlflow"
-            else:
-                tracking_uri = f"https://dagshub.com/{owner}/{repo}.mlflow"
+            # Preferir URI sem credenciais; MLflow usará USERNAME/PASSWORD do env
+            tracking_uri = f"https://dagshub.com/{owner}/{repo}.mlflow"
             mlflow.set_tracking_uri(tracking_uri)
         except Exception as e:
             warnings.warn(f"Falha ao definir tracking URI do DagsHub: {e}")
@@ -75,7 +98,10 @@ def init_tracking():
             warnings.warn(f"Falha ao definir MLFLOW_TRACKING_URI: {e}")
 
     exp_name = os.getenv("MLFLOW_EXPERIMENT_NAME", "max_receita_cafeterias")
-    mlflow.set_experiment(exp_name)
+    try:
+        mlflow.set_experiment(exp_name)
+    except Exception as e:
+        warnings.warn(f"Falha ao definir experimento '{exp_name}' no MLflow: {e}. Usando experimento padrão.")
 
     if dagshub is not None and owner and repo:
         try:
