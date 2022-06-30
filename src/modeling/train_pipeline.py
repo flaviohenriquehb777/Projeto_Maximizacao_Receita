@@ -278,7 +278,8 @@ def main():
     best_entry = None
 
     for spec in get_model_specs(feature_cols):
-        with mlflow.start_run(run_name=f"{spec.name}"):
+        with mlflow.start_run(run_name=f"{spec.name}") as active_run:
+            run_id = active_run.info.run_id
             mlflow.log_params({'model': spec.name, **spec.params})
             metrics = cross_validate_model(spec.estimator, X, y, cv)
             # Aliases compatíveis com testes: cv_rmse, cv_mae, cv_r2
@@ -319,6 +320,7 @@ def main():
                 'metrics': {**metrics_with_alias, **{f"holdout_{k}": v for k, v in holdout.items()}},
                 'model_path': str(local_model_path),
                 'estimator': spec.estimator,
+                'run_id': run_id,
             }
             results.append(entry)
 
@@ -388,6 +390,16 @@ def main():
             warnings.warn(f"Falha ao publicar curva em docs/: {e_pub}")
     except Exception as e:
         warnings.warn(f"Falha ao gerar curva de negócio: {e}")
+
+    # Marcar o run do melhor modelo com tags para visibilidade no DagsHub/MLflow
+    try:
+        from mlflow.tracking import MlflowClient
+        if best_entry and best_entry.get('run_id'):
+            client = MlflowClient()
+            client.set_tag(best_entry['run_id'], 'is_best', 'true')
+            client.set_tag(best_entry['run_id'], 'best_model', best_entry['name'])
+    except Exception as e_tag:
+        warnings.warn(f"Falha ao marcar tags do best_model no MLflow: {e_tag}")
 
     # Métrica do melhor modelo
     best_metrics = best_entry['metrics']
