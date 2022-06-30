@@ -43,13 +43,19 @@ class ModelSpec:
 
 
 def init_tracking():
-    """Inicializa MLflow e opcionalmente DagsHub, lendo variáveis de ambiente."""
+    """Inicializa MLflow e opcionalmente DagsHub, lendo variáveis de ambiente.
+
+    Suporta ambos padrões de env:
+    - DAGSHUB_REPO_OWNER / DAGSHUB_REPO_NAME
+    - DAGSHUB_OWNER / DAGSHUB_REPO
+    E MLFLOW_TRACKING_URI explícito quando fornecido.
+    """
     exp_name = os.getenv("MLFLOW_EXPERIMENT_NAME", "max_receita_cafeterias")
     mlflow.set_experiment(exp_name)
 
     # Configuração explícita de MLflow para DagsHub via env
-    owner = os.getenv("DAGSHUB_REPO_OWNER")
-    repo = os.getenv("DAGSHUB_REPO_NAME")
+    owner = os.getenv("DAGSHUB_REPO_OWNER") or os.getenv("DAGSHUB_OWNER")
+    repo = os.getenv("DAGSHUB_REPO_NAME") or os.getenv("DAGSHUB_REPO")
     tracking_uri_env = os.getenv("MLFLOW_TRACKING_URI")
     # Só define tracking remoto se owner/repo estiverem presentes (evita URLs vazias)
     if owner and repo:
@@ -64,11 +70,11 @@ def init_tracking():
         except Exception as e:
             warnings.warn(f"Falha ao definir MLFLOW_TRACKING_URI: {e}")
 
-    if dagshub is not None and os.getenv("DAGSHUB_REPO_OWNER") and os.getenv("DAGSHUB_REPO_NAME"):
+    if dagshub is not None and owner and repo:
         try:
             dagshub.init(
-                repo_owner=os.getenv("DAGSHUB_REPO_OWNER"),
-                repo_name=os.getenv("DAGSHUB_REPO_NAME"),
+                repo_owner=owner,
+                repo_name=repo,
                 mlflow=True,
             )
         except Exception as e:
