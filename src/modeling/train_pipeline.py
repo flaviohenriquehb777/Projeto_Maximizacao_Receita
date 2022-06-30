@@ -50,52 +50,40 @@ def init_tracking():
     - DAGSHUB_OWNER / DAGSHUB_REPO
     E MLFLOW_TRACKING_URI explícito quando fornecido.
     """
-    # Primeiro, configurar tracking URI (com credenciais se disponíveis), depois set_experiment
+    # Primeiro, configurar tracking URI (somente se houver credenciais); caso contrário, usar tracking local
     owner = os.getenv("DAGSHUB_REPO_OWNER") or os.getenv("DAGSHUB_OWNER")
     repo = os.getenv("DAGSHUB_REPO_NAME") or os.getenv("DAGSHUB_REPO")
     tracking_uri_env = os.getenv("MLFLOW_TRACKING_URI")
     username = os.getenv("MLFLOW_TRACKING_USERNAME") or os.getenv("DAGSHUB_USERNAME")
     password = os.getenv("MLFLOW_TRACKING_PASSWORD") or os.getenv("DAGSHUB_TOKEN")
-    token = os.getenv("DAGSHUB_TOKEN")
+    token_env = os.getenv("MLFLOW_TRACKING_TOKEN") or os.getenv("DAGSHUB_TOKEN")
 
-    # Registrar token no cliente DagsHub antes de inicializar MLflow
-    if dagshub is not None and token:
-        try:
-            from dagshub import auth as dagshub_auth  # type: ignore
-            dagshub_auth.add_token(token)  # type: ignore
-        except Exception as e:
-            warnings.warn(f"Falha ao registrar token DagsHub: {e}")
+    has_credentials = bool(username) and bool(password or token_env)
 
-    # Inicializar DagsHub (isso pode configurar o MLflow tracking automaticamente)
-    if dagshub is not None and owner and repo:
-        try:
-            dagshub.init(
-                repo_owner=owner,
-                repo_name=repo,
-                mlflow=True,
-            )
-        except Exception as e:
-            warnings.warn(f"Falha ao iniciar DagsHub: {e}")
+    if has_credentials:
+        # Garantir que MLflow leia credenciais via env
+        if username:
+            os.environ.setdefault("MLFLOW_TRACKING_USERNAME", username)
+        if password:
+            os.environ.setdefault("MLFLOW_TRACKING_PASSWORD", password)
+        if token_env:
+            os.environ.setdefault("MLFLOW_TRACKING_TOKEN", token_env)
 
-    # Garantir que MLflow leia credenciais via env
-    if username and password:
-        os.environ.setdefault("MLFLOW_TRACKING_USERNAME", username)
-        os.environ.setdefault("MLFLOW_TRACKING_PASSWORD", password)
-
-    # Se credenciais estiverem presentes, preferir URI com basic auth embutida
-    if owner and repo:
+        # Definir URI remoto (env explícito tem prioridade; senão, montar via owner/repo)
         try:
-            # Preferir URI sem credenciais; MLflow usará USERNAME/PASSWORD do env
-            tracking_uri = f"https://dagshub.com/{owner}/{repo}.mlflow"
-            mlflow.set_tracking_uri(tracking_uri)
+            if tracking_uri_env:
+                mlflow.set_tracking_uri(tracking_uri_env)
+            elif owner and repo:
+                mlflow.set_tracking_uri(f"https://dagshub.com/{owner}/{repo}.mlflow")
         except Exception as e:
-            warnings.warn(f"Falha ao definir tracking URI do DagsHub: {e}")
-    elif tracking_uri_env:
+            warnings.warn(f"Falha ao definir tracking remoto do MLflow: {e}")
+    else:
+        # Fallback robusto: tracking local em arquivo, evitando 401/403 em ambientes sem credenciais
         try:
-            # Se não houver owner/repo, usar exatamente o URI fornecido por env
-            mlflow.set_tracking_uri(tracking_uri_env)
+            local_uri = f"file://{(Path.cwd() / 'mlruns').resolve()}"
+            mlflow.set_tracking_uri(local_uri)
         except Exception as e:
-            warnings.warn(f"Falha ao definir MLFLOW_TRACKING_URI: {e}")
+            warnings.warn(f"Falha ao definir tracking local do MLflow: {e}")
 
     exp_name = os.getenv("MLFLOW_EXPERIMENT_NAME", "max_receita_cafeterias")
     try:
@@ -103,15 +91,7 @@ def init_tracking():
     except Exception as e:
         warnings.warn(f"Falha ao definir experimento '{exp_name}' no MLflow: {e}. Usando experimento padrão.")
 
-    if dagshub is not None and owner and repo:
-        try:
-            dagshub.init(
-                repo_owner=owner,
-                repo_name=repo,
-                mlflow=True,
-            )
-        except Exception as e:
-            warnings.warn(f"Falha ao iniciar DagsHub: {e}")
+    # Não chamar dagshub.init aqui para evitar fluxos OAuth interativos na CI.
 
 
 def load_dataset() -> pd.DataFrame:

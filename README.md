@@ -6,7 +6,7 @@
 Clique na miniatura para abrir a aplicação:
 
 <p align="center">
-  <a href="https://flaviohenriquehb777.github.io/Projeto_Maximizacao_Receita/" title="Abrir aplicação">
+  <a href="https://flaviohenriquehb777.github.io/Projeto_Maximizacao_Receita/index.html" title="Abrir aplicação">
     <img src="docs/thumbnail_card.svg" alt="Miniatura da Aplicação" style="width: 640px; max-width: 100%; height: auto;" />
   </a>
   
