@@ -17,7 +17,13 @@ except Exception:
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
-import shap
+# SHAP opcional (evita dependências nativas em runners mínimos)
+try:
+    import shap  # type: ignore
+    HAS_SHAP = True
+except Exception:
+    shap = None  # type: ignore
+    HAS_SHAP = False
 
 import mlflow
 
@@ -324,7 +330,7 @@ def main():
                 model_for_shap = best_model.named_steps.get('model', best_model)
             except Exception:
                 model_for_shap = best_model
-        if isinstance(model_for_shap, (RandomForestRegressor, GradientBoostingRegressor)) or type(model_for_shap).__name__ == 'XGBRegressor':
+        if HAS_SHAP and shap is not None and (isinstance(model_for_shap, (RandomForestRegressor, GradientBoostingRegressor)) or type(model_for_shap).__name__ == 'XGBRegressor'):
             # Amostra para desempenho
             X_sample = X.sample(n=min(1000, len(X)), random_state=42)
             # Usa os dados no espaço original; alguns pipelines podem exigir transform
