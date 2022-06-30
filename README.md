@@ -1,5 +1,8 @@
 # Aplicação Web – Maximização de Receita
 
+[![Build CI](https://github.com/flaviohenriquehb777/Projeto_Maximizacao_Receita/actions/workflows/ci.yml/badge.svg)](https://github.com/flaviohenriquehb777/Projeto_Maximizacao_Receita/actions/workflows/ci.yml)
+[![Pages](https://img.shields.io/github/deployments/flaviohenriquehb777/Projeto_Maximizacao_Receita/github-pages?label=pages)](https://github.com/flaviohenriquehb777/Projeto_Maximizacao_Receita/deployments/activity_log?environment=github-pages)
+
 [![Abrir a aplicação (GitHub Pages)](docs/app_thumbnail.svg)](https://flaviohenriquehb777.github.io/Projeto_Maximizacao_Receita/index.html)
 
 Abra a aplicação estática em: https://flaviohenriquehb777.github.io/Projeto_Maximizacao_Receita/index.html
