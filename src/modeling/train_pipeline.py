@@ -85,6 +85,13 @@ def init_tracking():
                 mlflow.set_tracking_uri(tracking_uri_env)
             elif owner and repo:
                 mlflow.set_tracking_uri(f"https://dagshub.com/{owner}/{repo}.mlflow")
+            # Inicialização explícita do DagsHub quando em CI ou quando habilitado
+            try:
+                import dagshub  # type: ignore
+                if owner and repo and (os.getenv("CI") or os.getenv("ENABLE_REMOTE_MLFLOW") == "1"):
+                    dagshub.init(repo, owner, mlflow=True)
+            except Exception as e_dag:
+                warnings.warn(f"Falha ao inicializar DagsHub (init): {e_dag}. Prosseguindo com MLflow URI configurado.")
         except Exception as e_uri:
             warnings.warn(f"Falha ao definir tracking remoto do MLflow: {e_uri}. Alternando para tracking local.")
             set_local_tracking()
@@ -303,7 +310,7 @@ def main():
     results = []
     best_profit = -float('inf')
     best_entry = None
-    # Base do nome de experimento; criaremos um experimento por modelo
+    # Experimento único (ex.: context7); todos os runs ficam agrupados nele
     exp_base = os.getenv("MLFLOW_EXPERIMENT_NAME", "max_receita_cafeterias")
     context_label = os.getenv("CONTEXT_LABEL") or os.getenv("CONTEXT") or "default"
     commit_sha = os.getenv("GITHUB_SHA") or os.getenv("CI_COMMIT_SHA") or "unknown"
@@ -311,11 +318,6 @@ def main():
     # Limitar a 6 modelos (exclui RandomForest para manter 6 no total)
     specs = [s for s in get_model_specs(feature_cols, target) if s.name != 'RandomForest']
     for spec in specs:
-        # Definir experimento específico por modelo para registro separado no DagsHub/MLflow
-        try:
-            mlflow.set_experiment(f"{exp_base}_{spec.name}")
-        except Exception:
-            pass
         with mlflow.start_run(run_name=f"{spec.name}") as active_run:
             run_id = active_run.info.run_id
             mlflow.log_params({'model': spec.name, **spec.params})
@@ -323,6 +325,7 @@ def main():
             try:
                 mlflow.set_tag('context', context_label)
                 mlflow.set_tag('commit_sha', commit_sha)
+                mlflow.set_tag('experiment', exp_base)
             except Exception:
                 pass
             metrics = cross_validate_model(spec.estimator, X, y, cv, target)

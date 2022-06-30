@@ -173,9 +173,54 @@
   <script>
     const state = { model: null, datasetCurve: null, onnx: null };
 
+    // Resolve caminho de assets funcionando em vários ambientes:
+    // - servidor local (docs/ como raiz)
+    // - GitHub Pages (/<repo>/)
+    // - htmlpreview/github raw (preview via README)
+    async function resolveAssetPath(filename) {
+      const origin = window.location.origin;
+      const pathname = window.location.pathname;
+      const baseDir = pathname.replace(/index\.html(?:\?.*)?$/, '');
+      const candidates = [
+        filename,
+        baseDir + filename,
+        origin + baseDir + filename,
+        '/docs/' + filename,
+        origin + '/docs/' + filename,
+      ];
+
+      // Caso htmlpreview.github.io (link no README): converter query ?https://github.com/.../blob/.../docs/index.html
+      const qs = (window.location.search || '').replace(/^\?/, '');
+      if (qs.startsWith('https://github.com/')) {
+        try {
+          const raw = qs
+            .replace('https://github.com/', 'https://raw.githubusercontent.com/')
+            .replace('/blob/', '/');
+          const rawBase = raw.replace(/index\.html(?:\?.*)?$/, '');
+          candidates.push(rawBase + filename);
+        } catch (_) { /* noop */ }
+      }
+
+      // Caso já esteja em raw.githubusercontent.com
+      if (origin.includes('raw.githubusercontent.com')) {
+        candidates.push(baseDir + filename);
+      }
+
+      for (const p of candidates) {
+        try {
+          const url = p.startsWith('http') ? p : (p.startsWith('/') ? origin + p : p);
+          const res = await fetch(url, { method: 'GET', cache: 'no-store' });
+          if (res.ok) return url + (url.includes('?') ? '&' : '?') + '_ts=' + Date.now();
+        } catch (_) { /* tenta próximo */ }
+      }
+      return null;
+    }
+
     async function loadModel() {
       try {
-        const res = await fetch('model_linear.json');
+        const url = await resolveAssetPath('model_linear.json');
+        if (!url) throw new Error('model_linear.json não encontrado');
+        const res = await fetch(url);
         if (!res.ok) throw new Error('Falha ao buscar model_linear.json');
         const model = await res.json();
         if (!model || typeof model !== 'object') throw new Error('JSON do modelo inválido');
@@ -191,7 +236,9 @@
 
     async function loadDatasetCurve() {
       try {
-        const res = await fetch('curve_business_metric.csv');
+        const url = await resolveAssetPath('curve_business_metric.csv');
+        if (!url) throw new Error('CSV não encontrado');
+        const res = await fetch(url);
         if (!res.ok) throw new Error('CSV não encontrado');
         const text = await res.text();
         const lines = text.trim().split(/\r?\n/);
@@ -221,8 +268,11 @@
       const s = document.getElementById('status');
       try {
         // Tenta carregar sessão ONNX e metadados
-        const session = await ort.InferenceSession.create('model_best.onnx');
-        const resMeta = await fetch('model_best_meta.json');
+        const onnxUrl = await resolveAssetPath('model_best.onnx');
+        const metaUrl = await resolveAssetPath('model_best_meta.json');
+        if (!onnxUrl || !metaUrl) throw new Error('Assets ONNX não encontrados');
+        const session = await ort.InferenceSession.create(onnxUrl);
+        const resMeta = await fetch(metaUrl);
         if (!resMeta.ok) throw new Error('Metadados ONNX não encontrados');
         const meta = await resMeta.json();
         if (!meta || !Array.isArray(meta.features)) throw new Error('Metadados inválidos');
@@ -470,24 +520,6 @@
       function mark(img) { img.style.display = 'block'; ok++; status.textContent = ok ? '' : 'Diagnósticos não disponíveis.'; }
       function hide(img) { img.style.display = 'none'; status.textContent = 'Alguns diagnósticos não estão disponíveis.'; }
 
-      // Resolve caminho de asset tentando múltiplas opções (ambiente local / GitHub Pages)
-      async function resolveAssetPath(filename) {
-        const basePath = window.location.pathname.replace(/index\.html$/, '');
-        const candidates = [
-          filename,
-          basePath + filename,
-          '/docs/' + filename,
-          (basePath.endsWith('/docs/') ? basePath : (basePath + 'docs/')) + filename,
-        ];
-        for (const p of candidates) {
-          try {
-            const res = await fetch(p, { method: 'GET', cache: 'no-store' });
-            if (res.ok) return p + '?_ts=' + Date.now(); // cache-buster
-          } catch (e) { /* ignora e tenta próximo */ }
-        }
-        return null;
-      }
-
       async function loadImage(img, filename) {
         const path = await resolveAssetPath(filename);
         if (path) {
@@ -510,7 +542,9 @@
       const head = document.getElementById('policyHeader');
       const body = document.getElementById('policyBody');
       try {
-        const res = await fetch('policy_otima_resumo.csv');
+        const url = await resolveAssetPath('policy_otima_resumo.csv');
+        if (!url) throw new Error('CSV não encontrado');
+        const res = await fetch(url);
         if (!res.ok) throw new Error('CSV não encontrado');
         const text = await res.text();
         const lines = text.trim().split(/\r?\n/);
