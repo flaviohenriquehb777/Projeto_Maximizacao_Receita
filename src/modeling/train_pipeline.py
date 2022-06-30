@@ -50,25 +50,32 @@ def init_tracking():
     - DAGSHUB_OWNER / DAGSHUB_REPO
     E MLFLOW_TRACKING_URI explícito quando fornecido.
     """
-    exp_name = os.getenv("MLFLOW_EXPERIMENT_NAME", "max_receita_cafeterias")
-    mlflow.set_experiment(exp_name)
-
-    # Configuração explícita de MLflow para DagsHub via env
+    # Primeiro, configurar tracking URI (com credenciais se disponíveis), depois set_experiment
     owner = os.getenv("DAGSHUB_REPO_OWNER") or os.getenv("DAGSHUB_OWNER")
     repo = os.getenv("DAGSHUB_REPO_NAME") or os.getenv("DAGSHUB_REPO")
     tracking_uri_env = os.getenv("MLFLOW_TRACKING_URI")
-    # Só define tracking remoto se owner/repo estiverem presentes (evita URLs vazias)
+    username = os.getenv("MLFLOW_TRACKING_USERNAME") or os.getenv("DAGSHUB_USERNAME")
+    password = os.getenv("MLFLOW_TRACKING_PASSWORD") or os.getenv("DAGSHUB_TOKEN")
+
+    # Se credenciais estiverem presentes, preferir URI com basic auth embutida
     if owner and repo:
         try:
-            mlflow.set_tracking_uri(f"https://dagshub.com/{owner}/{repo}.mlflow")
+            if username and password:
+                tracking_uri = f"https://{username}:{password}@dagshub.com/{owner}/{repo}.mlflow"
+            else:
+                tracking_uri = f"https://dagshub.com/{owner}/{repo}.mlflow"
+            mlflow.set_tracking_uri(tracking_uri)
         except Exception as e:
             warnings.warn(f"Falha ao definir tracking URI do DagsHub: {e}")
     elif tracking_uri_env:
-        # Permite configuração manual válida
         try:
+            # Se não houver owner/repo, usar exatamente o URI fornecido por env
             mlflow.set_tracking_uri(tracking_uri_env)
         except Exception as e:
             warnings.warn(f"Falha ao definir MLFLOW_TRACKING_URI: {e}")
+
+    exp_name = os.getenv("MLFLOW_EXPERIMENT_NAME", "max_receita_cafeterias")
+    mlflow.set_experiment(exp_name)
 
     if dagshub is not None and owner and repo:
         try:
