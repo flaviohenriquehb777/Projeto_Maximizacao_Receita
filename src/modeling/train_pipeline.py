@@ -61,6 +61,15 @@ def init_tracking():
     # Aceitar token-only (sem username/password) para MLflow em DagsHub
     has_credentials = bool(token_env) or (bool(username) and bool(password))
 
+    def set_local_tracking():
+        try:
+            local_uri = f"file://{(Path.cwd() / 'mlruns').resolve()}"
+            mlflow.set_tracking_uri(local_uri)
+            return True
+        except Exception as e_local:
+            warnings.warn(f"Falha ao definir tracking local do MLflow: {e_local}")
+            return False
+
     if has_credentials:
         # Garantir que MLflow leia credenciais via env
         if username:
@@ -76,21 +85,24 @@ def init_tracking():
                 mlflow.set_tracking_uri(tracking_uri_env)
             elif owner and repo:
                 mlflow.set_tracking_uri(f"https://dagshub.com/{owner}/{repo}.mlflow")
-        except Exception as e:
-            warnings.warn(f"Falha ao definir tracking remoto do MLflow: {e}")
+        except Exception as e_uri:
+            warnings.warn(f"Falha ao definir tracking remoto do MLflow: {e_uri}. Alternando para tracking local.")
+            set_local_tracking()
     else:
         # Fallback robusto: tracking local em arquivo, evitando 401/403 em ambientes sem credenciais
-        try:
-            local_uri = f"file://{(Path.cwd() / 'mlruns').resolve()}"
-            mlflow.set_tracking_uri(local_uri)
-        except Exception as e:
-            warnings.warn(f"Falha ao definir tracking local do MLflow: {e}")
+        set_local_tracking()
 
     exp_name = os.getenv("MLFLOW_EXPERIMENT_NAME", "max_receita_cafeterias")
     try:
         mlflow.set_experiment(exp_name)
-    except Exception as e:
-        warnings.warn(f"Falha ao definir experimento '{exp_name}' no MLflow: {e}. Usando experimento padrão.")
+    except Exception as e_exp:
+        warnings.warn(f"Falha ao definir experimento '{exp_name}' no MLflow: {e_exp}. Alternando para tracking local e experimento padrão.")
+        # Força fallback local se a configuração de experimento remoto falhar (ex.: 401)
+        if set_local_tracking():
+            try:
+                mlflow.set_experiment(exp_name)
+            except Exception as e_exp2:
+                warnings.warn(f"Falha ao definir experimento local '{exp_name}': {e_exp2}. Prosseguindo com experimento padrão.")
 
     # Não chamar dagshub.init aqui para evitar fluxos OAuth interativos na CI.
 
