@@ -5,9 +5,12 @@
 
 Clique na miniatura para abrir a aplicação:
 
-<a href="https://flaviohenriquehb777.github.io/Projeto_Maximizacao_Receita/index.html" title="Abrir aplicação">
-  <img src="docs/thumbnail_card.svg" alt="Miniatura da Aplicação" style="width: 640px; max-width: 100%; height: auto;" />
-</a>
+<p align="center">
+  <a href="https://flaviohenriquehb777.github.io/Projeto_Maximizacao_Receita/" title="Abrir aplicação">
+    <img src="docs/thumbnail_card.svg" alt="Miniatura da Aplicação" style="width: 640px; max-width: 100%; height: auto;" />
+  </a>
+  
+</p>
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE.md)
 

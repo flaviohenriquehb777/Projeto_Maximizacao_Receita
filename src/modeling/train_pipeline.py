@@ -217,7 +217,14 @@ def main():
         with mlflow.start_run(run_name=f"{spec.name}"):
             mlflow.log_params({'model': spec.name, **spec.params})
             metrics = cross_validate_model(spec.estimator, X, y, cv)
-            mlflow.log_metrics(metrics)
+            # Aliases compatíveis com testes: cv_rmse, cv_mae, cv_r2
+            metrics_with_alias = {
+                **metrics,
+                'cv_rmse': metrics.get('cv_rmse_mean'),
+                'cv_mae': metrics.get('cv_mae_mean'),
+                'cv_r2': metrics.get('cv_r2_mean'),
+            }
+            mlflow.log_metrics(metrics_with_alias)
 
             # Fit/holdout metrics
             X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
@@ -245,7 +252,7 @@ def main():
 
             entry = {
                 'name': spec.name,
-                'metrics': {**metrics, **{f"holdout_{k}": v for k, v in holdout.items()}},
+                'metrics': {**metrics_with_alias, **{f"holdout_{k}": v for k, v in holdout.items()}},
                 'model_path': str(local_model_path),
                 'estimator': spec.estimator,
             }

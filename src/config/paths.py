@@ -13,11 +13,18 @@ def get_project_root() -> Path:
 
 PROJECT_ROOT = get_project_root()
 DATA_DIR = PROJECT_ROOT / "dados"
+DATA_DIR.mkdir(exist_ok=True)
+
 DADOS_AMOR_A_CAKES = DATA_DIR / "dataset_cafeterias_rj.xlsx"  # Nome padronizado
 # DADOS_TRATADOS = DATA_DIR / "dados_tratados.parquet"  # Exemplo
 
-if not DADOS_AMOR_A_CAKES.exists():
-    raise FileNotFoundError(f"Arquivo não encontrado: {DADOS_AMOR_A_CAKES}")
+def dataset_exists() -> bool:
+    """Verifica de forma preguiçosa se o dataset local existe.
+
+    Evita quebrar import em ambientes CI; o pipeline decide fallback
+    para dados sintéticos quando o arquivo estiver ausente.
+    """
+    return DADOS_AMOR_A_CAKES.exists()
 
 
 MODELS_DIR = PROJECT_ROOT / "models"
@@ -25,4 +32,4 @@ MODELS_DIR.mkdir(exist_ok=True)  # Cria a pasta se não existir
 
 
 REPORTS_DIR = PROJECT_ROOT / "report"
-REPORTS_DIR.mkdir(exist_ok=True) 
+REPORTS_DIR.mkdir(exist_ok=True)

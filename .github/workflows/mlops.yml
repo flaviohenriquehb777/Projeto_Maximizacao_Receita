@@ -1,0 +1,154 @@
+name: MLOps CI
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-train:
+    runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run tests with coverage (min 30%)
+        run: |
+          pytest -q --cov=src --cov-report=xml --cov-report=html --disable-warnings --cov-fail-under=30
+
+      - name: Upload coverage artifacts
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-coverage
+          path: |
+            coverage.xml
+            htmlcov/
+
+      - name: Configurar tracking remoto (DagsHub/MLflow)
+        env:
+          DAGSHUB_OWNER: ${{ secrets.DAGSHUB_OWNER }}
+          DAGSHUB_REPO: ${{ secrets.DAGSHUB_REPO }}
+          DAGSHUB_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
+          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+        run: |
+          echo "DAGSHUB_OWNER=${DAGSHUB_OWNER}" >> $GITHUB_ENV
+          echo "DAGSHUB_REPO=${DAGSHUB_REPO}" >> $GITHUB_ENV
+          echo "DAGSHUB_TOKEN=${DAGSHUB_TOKEN}" >> $GITHUB_ENV
+          echo "MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI}" >> $GITHUB_ENV
+          if [ -n "${DAGSHUB_OWNER}" ] || [ -n "${MLFLOW_TRACKING_URI}" ]; then
+            echo "ENABLE_REMOTE_MLFLOW=1" >> $GITHUB_ENV
+          fi
+
+      - name: Garantir remote DVC (DagsHub) e baixar dataset
+        if: ${{ env.DAGSHUB_OWNER != '' && env.DAGSHUB_REPO != '' }}
+        run: |
+          set -e
+          echo "Configurando remote DVC dagshub..."
+          if dvc remote list | grep -q "dagshub"; then
+            echo "Remote 'dagshub' já existe";
+          else
+            dvc remote add -d dagshub "https://dagshub.com/${DAGSHUB_OWNER}/${DAGSHUB_REPO}.dvc";
+          fi
+          if [ -n "${DAGSHUB_TOKEN}" ]; then
+            dvc remote modify dagshub auth basic
+            dvc remote modify dagshub user "${DAGSHUB_OWNER}"
+            dvc remote modify dagshub password "${DAGSHUB_TOKEN}"
+          fi
+          echo "Baixando dataset via DVC..."
+          dvc pull -r dagshub dados/dadosVenda.xlsx.dvc || echo "DVC pull falhou; continuando com fallback"
+          dvc checkout dados/dadosVenda.xlsx.dvc || echo "DVC checkout falhou; continuando com fallback"
+
+      - name: Treinar e gerar métricas (fallback simples)
+        run: |
+          mkdir -p artifacts models || true
+          python src/train.py || true
+          python src/experiments.py || true
+
+      - name: Job summary (metrics)
+        if: ${{ always() }}
+        run: |
+          python - <<'PY'
+          import os, json
+          from os import path as p
+          s = os.environ['GITHUB_STEP_SUMMARY']
+          lines = ['# Métricas e Melhor Modelo', '']
+
+          # Treino
+          lines.append('## Treino')
+          train_path = 'artifacts/metrics.json'
+          if p.exists(train_path):
+              try:
+                  d = json.load(open(train_path, 'r', encoding='utf-8'))
+                  lines.append(f"- RMSE: {d.get('rmse', 'N/A')}")
+                  lines.append(f"- R2: {d.get('r2', 'N/A')}")
+              except Exception:
+                  lines.append('- métricas inválidas')
+          else:
+              lines.append('- arquivo não encontrado')
+
+          # Melhor modelo
+          lines.append('')
+          lines.append('## Melhor Modelo')
+          best_path = 'artifacts/metrics_best.json'
+          if p.exists(best_path):
+              try:
+                  b = json.load(open(best_path, 'r', encoding='utf-8'))
+                  lines.append(f"- Modelo: {b.get('model', 'N/A')}")
+                  lines.append(f"- RMSE: {b.get('rmse', 'N/A')}")
+                  lines.append(f"- R2: {b.get('r2', 'N/A')}")
+              except Exception:
+                  lines.append('- métricas inválidas')
+          else:
+              lines.append('- arquivo não encontrado')
+
+          with open(s, 'a', encoding='utf-8') as f:
+              f.write('\n'.join(lines) + '\n')
+          PY
+
+      - name: Upload artifacts (se disponíveis)
+        if: ${{ hashFiles('artifacts/metrics.json') != '' || hashFiles('artifacts/metrics_best.json') != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: model-and-metrics
+          path: |
+            artifacts/metrics.json
+            artifacts/metrics_best.json
+        # EOF
+
+      - name: Atualizar README com métricas e push
+        if: ${{ always() }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          python scripts/update_readme.py
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          if [[ -n "$(git status --porcelain README.md)" ]]; then
+            git add README.md
+            git commit -m "docs: atualizar resultados do modelo (CI auto)"
+            git push
+          else
+            echo "README sem mudanças."
+          fi
