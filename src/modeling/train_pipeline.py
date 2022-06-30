@@ -305,6 +305,8 @@ def main():
     best_entry = None
     # Base do nome de experimento; criaremos um experimento por modelo
     exp_base = os.getenv("MLFLOW_EXPERIMENT_NAME", "max_receita_cafeterias")
+    context_label = os.getenv("CONTEXT_LABEL") or os.getenv("CONTEXT") or "default"
+    commit_sha = os.getenv("GITHUB_SHA") or os.getenv("CI_COMMIT_SHA") or "unknown"
 
     # Limitar a 6 modelos (exclui RandomForest para manter 6 no total)
     specs = [s for s in get_model_specs(feature_cols, target) if s.name != 'RandomForest']
@@ -317,6 +319,12 @@ def main():
         with mlflow.start_run(run_name=f"{spec.name}") as active_run:
             run_id = active_run.info.run_id
             mlflow.log_params({'model': spec.name, **spec.params})
+            # Tags de contexto e commit para rastreamento no DagsHub/MLflow
+            try:
+                mlflow.set_tag('context', context_label)
+                mlflow.set_tag('commit_sha', commit_sha)
+            except Exception:
+                pass
             metrics = cross_validate_model(spec.estimator, X, y, cv, target)
             # Aliases compatíveis com testes: cv_rmse, cv_mae, cv_r2
             metrics_with_alias = {
@@ -439,6 +447,12 @@ def main():
             client.set_tag(best_entry['run_id'], 'best_model', best_entry['name'])
             # Também registrar o melhor como runName claro
             client.set_tag(best_entry['run_id'], 'mlflow.runName', f"best_model_{best_entry['name']}")
+            # Propagar contexto ao melhor run
+            try:
+                client.set_tag(best_entry['run_id'], 'context', context_label)
+                client.set_tag(best_entry['run_id'], 'commit_sha', commit_sha)
+            except Exception:
+                pass
     except Exception as e_tag:
         warnings.warn(f"Falha ao marcar tags do best_model no MLflow: {e_tag}")
 
