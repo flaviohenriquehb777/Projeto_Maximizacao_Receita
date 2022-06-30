@@ -61,8 +61,8 @@ def init_tracking():
     # Registrar token no cliente DagsHub antes de inicializar MLflow
     if dagshub is not None and token:
         try:
-            import dagshub.auth  # type: ignore
-            dagshub.auth.add_token(token)  # type: ignore
+            from dagshub import auth as dagshub_auth  # type: ignore
+            dagshub_auth.add_token(token)  # type: ignore
         except Exception as e:
             warnings.warn(f"Falha ao registrar token DagsHub: {e}")
 
