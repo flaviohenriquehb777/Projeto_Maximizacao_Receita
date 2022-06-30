@@ -6,5 +6,5 @@
     "preco_final"
   ],
   "target": "quantidade_vendida_mes",
-  "model_name": "GradientBoosting"
+  "model_name": "RandomForest"
 }

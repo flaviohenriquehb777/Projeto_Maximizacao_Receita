@@ -1,0 +1,12 @@
+stages:
+  train:
+    cmd: python -m src.modeling.train_pipeline
+    deps:
+      - src/modeling/train_pipeline.py
+      - src/config/paths.py
+    outs:
+      - models/model_linear.json
+      - models/metrics_snapshot.json
+      - models/model_best.onnx
+      - models/model_best_meta.json
+      - models/curve_business_metric.csv

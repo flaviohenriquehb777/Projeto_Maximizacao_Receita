@@ -29,9 +29,14 @@ def test_training_produces_artifacts_and_metrics_snapshot():
     assert snapshot_path.exists(), "metrics_snapshot.json não foi criado."
     snapshot = json.loads(snapshot_path.read_text(encoding='utf-8'))
     assert 'metrics' in snapshot and isinstance(snapshot['metrics'], dict), "Snapshot sem métricas."
+    # Checagem estrutural do alvo: agora o pipeline inclui 'target' no snapshot
+    assert 'target' in snapshot, "Snapshot sem campo 'target'."
+    assert snapshot['target'] in ['receita_mes','receita_dia','quantidade_vendida_mes','quantidade_vendida_dia'], (
+        f"Valor de target inesperado: {snapshot['target']}")
 
     is_ci = os.getenv('CI', '').lower() == 'true'
-    if is_ci:
+    target_is_revenue = snapshot.get('target') in ['receita_mes','receita_dia']
+    if is_ci or target_is_revenue:
         # Em CI, o dataset original pode não estar versionado; validamos estrutura e sanidade.
         required = ['cv_mae','cv_rmse','cv_r2','holdout_mae','holdout_rmse','holdout_r2']
         for k in required:

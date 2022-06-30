@@ -16,7 +16,7 @@ DATA_DIR = PROJECT_ROOT / "dados"
 DATA_DIR.mkdir(exist_ok=True)
 
 DADOS_AMOR_A_CAKES = DATA_DIR / "dataset_cafeterias_rj.xlsx"  # Nome padronizado
-# DADOS_TRATADOS = DATA_DIR / "dados_tratados.parquet"  # Exemplo
+DADOS_AMOR_A_CAKES_TRATADOS = DATA_DIR / "dataset_cafeterias_rj_limpo.xlsx"  # Exemplo
 
 def dataset_exists() -> bool:
     """Verifica de forma preguiçosa se o dataset local existe.
@@ -25,6 +25,14 @@ def dataset_exists() -> bool:
     para dados sintéticos quando o arquivo estiver ausente.
     """
     return DADOS_AMOR_A_CAKES.exists()
+
+def dataset_exists() -> bool:
+    """Verifica de forma preguiçosa se o dataset local existe.
+
+    Evita quebrar import em ambientes CI; o pipeline decide fallback
+    para dados sintéticos quando o arquivo estiver ausente.
+    """
+    return DADOS_AMOR_A_CAKES_TRATADOS.exists()
 
 
 MODELS_DIR = PROJECT_ROOT / "models"

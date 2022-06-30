@@ -146,7 +146,10 @@
           <img id="imgResiduos" alt="Resíduos" />
         </div>
       </div>
-      <p class="muted" id="diagStatus"></p>
+      <div style="display:flex; align-items:center; gap:12px; margin-top:8px;">
+        <p class="muted" id="diagStatus" style="margin:0;">&nbsp;</p>
+        <button class="btn" id="btnReloadDiag" style="margin:0; padding:8px 12px;">Recarregar diagnósticos</button>
+      </div>
     </div>
 
     <div class="card" id="cardPolicy" style="margin-top:16px;">
@@ -517,7 +520,7 @@
       const imgCurve = document.getElementById('imgCurve');
       const imgHoldout = document.getElementById('imgHoldout');
       const imgRes = document.getElementById('imgResiduos');
-      function mark(img) { img.style.display = 'block'; ok++; status.textContent = ok ? '' : 'Diagnósticos não disponíveis.'; }
+      function mark(img) { img.style.display = 'block'; ok++; status.textContent = ok === total ? 'Diagnósticos carregados.' : ''; }
       function hide(img) { img.style.display = 'none'; status.textContent = 'Alguns diagnósticos não estão disponíveis.'; }
 
       async function loadImage(img, filename) {
@@ -568,6 +571,7 @@
     // Inicializa diagnósticos e tabela após definir as funções
     initDiagnostics();
     loadPolicyCsv();
+    document.getElementById('btnReloadDiag').addEventListener('click', () => { initDiagnostics(); loadPolicyCsv(); });
   </script>
 </body>
 </html>

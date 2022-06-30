@@ -38,6 +38,19 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements-ci.txt
 
+      - name: Validate DagsHub configuration
+        shell: bash
+        env:
+          DAGSHUB_OWNER: ${{ secrets.DAGSHUB_OWNER }}
+          DAGSHUB_REPO: ${{ secrets.DAGSHUB_REPO }}
+          DAGSHUB_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
+        run: |
+          echo "Verificando variáveis do DagsHub (sem revelar segredos)..."
+          [ -z "$DAGSHUB_OWNER" ] && echo "Falta DAGSHUB_OWNER" && exit 1 || echo "DAGSHUB_OWNER OK"
+          [ -z "$DAGSHUB_REPO" ] && echo "Falta DAGSHUB_REPO" && exit 1 || echo "DAGSHUB_REPO OK"
+          [ -z "$DAGSHUB_TOKEN" ] && echo "Falta DAGSHUB_TOKEN" && exit 1 || echo "DAGSHUB_TOKEN OK"
+          echo "MLFLOW_TRACKING_URI será: https://dagshub.com/${DAGSHUB_OWNER}/${DAGSHUB_REPO}.mlflow"
+
       - name: Run tests
         env:
           PYTHONPATH: ${{ github.workspace }}
