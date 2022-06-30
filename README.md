@@ -1,15 +1,13 @@
-# Aplicação Web – Maximização de Receita
+# Otimização de Receita com Machine Learning
 
 [![Build CI](https://github.com/flaviohenriquehb777/Projeto_Maximizacao_Receita/actions/workflows/ci.yml/badge.svg)](https://github.com/flaviohenriquehb777/Projeto_Maximizacao_Receita/actions/workflows/ci.yml)
 [![Pages](https://img.shields.io/github/deployments/flaviohenriquehb777/Projeto_Maximizacao_Receita/github-pages?label=pages)](https://github.com/flaviohenriquehb777/Projeto_Maximizacao_Receita/deployments/activity_log?environment=github-pages)
 
-Abra a aplicação estática em: https://flaviohenriquehb777.github.io/Projeto_Maximizacao_Receita/index.html
+Clique na miniatura para abrir a aplicação:
 
-Abra a aplicação acima. Abaixo, segue a documentação completa do projeto com o fluxo atualizado.
-
-# Otimização de Receita com Machine Learning
-
-[![Abrir a aplicação (GitHub Pages)](docs/Miniatura.png)](https://flaviohenriquehb777.github.io/Projeto_Maximizacao_Receita/index.html)
+<a href="https://flaviohenriquehb777.github.io/Projeto_Maximizacao_Receita/index.html" title="Abrir aplicação">
+  <img src="docs/thumbnail_card.svg" alt="Miniatura da Aplicação" style="width: 640px; max-width: 100%; height: auto;" />
+</a>
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE.md)
 

@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-label="Miniatura da aplicação de Maximização de Receita">
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="60%" stop-color="#111827"/>
+      <stop offset="100%" stop-color="#1f2937"/>
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#06b6d4"/>
+      <stop offset="100%" stop-color="#22c55e"/>
+    </linearGradient>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <!-- Fundo -->
+  <rect width="1200" height="630" fill="url(#bgGrad)"/>
+
+  <!-- Ornamentos suaves -->
+  <circle cx="1080" cy="120" r="160" fill="#0ea5e9" opacity="0.12"/>
+  <circle cx="140" cy="520" r="120" fill="#22c55e" opacity="0.10"/>
+
+  <!-- Cabeçalho -->
+  <g transform="translate(80,80)">
+    <text x="0" y="0" font-family="Inter, Segoe UI, Roboto, Arial" font-size="42" font-weight="700" fill="#e5e7eb">
+      Maximização de Receita
+    </text>
+    <text x="0" y="38" font-family="Inter, Segoe UI, Roboto, Arial" font-size="20" fill="#9ca3af">
+      Preço × Desconto × Quantidade — insights para lucro máximo
+    </text>
+  </g>
+
+  <!-- Card principal com gráfico -->
+  <g transform="translate(80,140)" filter="url(#softShadow)">
+    <rect x="0" y="0" width="1040" height="360" rx="20" fill="#0b1220" stroke="#1f2937" stroke-width="1.5"/>
+
+    <!-- Eixos -->
+    <g transform="translate(60,60)">
+      <line x1="0" y1="260" x2="920" y2="260" stroke="#334155" stroke-width="2"/>
+      <line x1="0" y1="0" x2="0" y2="260" stroke="#334155" stroke-width="2"/>
+
+      <!-- Grade -->
+      <g stroke="#1f2937" stroke-width="1">
+        <line x1="0" y1="200" x2="920" y2="200"/>
+        <line x1="0" y1="140" x2="920" y2="140"/>
+        <line x1="0" y1="80" x2="920" y2="80"/>
+      </g>
+
+      <!-- Curva de receita (exemplo estilizado) -->
+      <path d="M 0 220 C 120 130, 240 90, 360 80 C 470 72, 540 100, 620 140 C 720 190, 820 210, 920 215" fill="none" stroke="url(#accentGrad)" stroke-width="6"/>
+
+      <!-- Pontos chave -->
+      <circle cx="360" cy="80" r="6" fill="#06b6d4"/>
+      <circle cx="620" cy="140" r="6" fill="#22c55e"/>
+      <circle cx="920" cy="215" r="6" fill="#22c55e" opacity="0.8"/>
+
+      <!-- Legendas -->
+      <text x="20" y="-16" font-family="Inter, Segoe UI, Roboto, Arial" font-size="16" fill="#94a3b8">Receita</text>
+      <text x="860" y="286" font-family="Inter, Segoe UI, Roboto, Arial" font-size="16" fill="#94a3b8">Preço / Desconto</text>
+    </g>
+
+    <!-- Faixa superior -->
+    <g transform="translate(20,14)">
+      <rect x="0" y="0" width="1000" height="36" rx="10" fill="#0f172a" opacity="0.9"/>
+      <text x="16" y="24" font-family="Inter, Segoe UI, Roboto, Arial" font-size="16" fill="#cbd5e1">Modelo Linear · CSV + JSON · Sem dependência de Excel no runtime</text>
+    </g>
+  </g>
+
+  <!-- Botão chamativo -->
+  <g transform="translate(80,532)">
+    <a xlink:href="https://flaviohenriquehb777.github.io/Projeto_Maximizacao_Receita/index.html" target="_blank" rel="noopener noreferrer">
+      <rect x="0" y="0" width="300" height="60" rx="12" fill="url(#accentGrad)"/>
+      <text x="24" y="38" font-family="Inter, Segoe UI, Roboto, Arial" font-size="22" font-weight="700" fill="#082f49">Abrir aplicação</text>
+    </a>
+    <!-- Indicadores à direita -->
+    <g transform="translate(340,0)">
+      <rect x="0" y="0" width="360" height="60" rx="12" fill="#0b1220" stroke="#1f2937"/>
+      <circle cx="42" cy="30" r="16" fill="#22c55e"/>
+      <text x="70" y="36" font-family="Inter, Segoe UI, Roboto, Arial" font-size="20" fill="#cbd5e1">Publicação via GitHub Pages</text>
+    </g>
+  </g>
+</svg>
