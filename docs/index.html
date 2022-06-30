@@ -469,15 +469,40 @@
       const imgRes = document.getElementById('imgResiduos');
       function mark(img) { img.style.display = 'block'; ok++; status.textContent = ok ? '' : 'Diagnósticos não disponíveis.'; }
       function hide(img) { img.style.display = 'none'; status.textContent = 'Alguns diagnósticos não estão disponíveis.'; }
-      imgCurve.onload = () => mark(imgCurve);
-      imgCurve.onerror = () => hide(imgCurve);
-      imgCurve.src = 'curve_business_metric.png';
-      imgHoldout.onload = () => mark(imgHoldout);
-      imgHoldout.onerror = () => hide(imgHoldout);
-      imgHoldout.src = 'diag_holdout_scatter.png';
-      imgRes.onload = () => mark(imgRes);
-      imgRes.onerror = () => hide(imgRes);
-      imgRes.src = 'diag_residuos.png';
+
+      // Resolve caminho de asset tentando múltiplas opções (ambiente local / GitHub Pages)
+      async function resolveAssetPath(filename) {
+        const basePath = window.location.pathname.replace(/index\.html$/, '');
+        const candidates = [
+          filename,
+          basePath + filename,
+          '/docs/' + filename,
+          (basePath.endsWith('/docs/') ? basePath : (basePath + 'docs/')) + filename,
+        ];
+        for (const p of candidates) {
+          try {
+            const res = await fetch(p, { method: 'GET', cache: 'no-store' });
+            if (res.ok) return p + '?_ts=' + Date.now(); // cache-buster
+          } catch (e) { /* ignora e tenta próximo */ }
+        }
+        return null;
+      }
+
+      async function loadImage(img, filename) {
+        const path = await resolveAssetPath(filename);
+        if (path) {
+          img.onload = () => mark(img);
+          img.onerror = () => hide(img);
+          img.src = path;
+        } else {
+          hide(img);
+        }
+      }
+
+      // Carrega imagens com fallback de caminho
+      loadImage(imgCurve, 'curve_business_metric.png');
+      loadImage(imgHoldout, 'diag_holdout_scatter.png');
+      loadImage(imgRes, 'diag_residuos.png');
     }
 
     async function loadPolicyCsv() {
