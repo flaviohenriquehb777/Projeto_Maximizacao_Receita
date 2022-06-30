@@ -1,5 +1,12 @@
 {
   "best_model": "GradientBoosting",
+  "best_model_name": "GradientBoosting",
+  "feature_order": [
+    "custo_producao",
+    "preco_original",
+    "desconto_pct",
+    "preco_final"
+  ],
   "metrics": {
     "cv_rmse_mean": 241.3048260186571,
     "cv_rmse_std": 19.425685746607183,

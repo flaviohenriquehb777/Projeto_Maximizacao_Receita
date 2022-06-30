@@ -84,15 +84,22 @@
             <option value="receita" selected>Maximizar Receita</option>
             <option value="lucro">Maximizar Lucro (com restrição de custo)</option>
           </select>
-          <span class="muted">Escolha a métrica principal</span>
         </div>
         <div>
           <label for="mostrar_dataset">Curva de Referência</label>
           <div style="display:flex; align-items:center; gap:8px;">
             <input type="checkbox" id="mostrar_dataset" />
-            <span class="muted">Exibir curva média do dataset</span>
+            <span class="muted">Exibir gráfico.</span>
           </div>
           <span class="muted" id="statusDataset"></span>
+        </div>
+        <div>
+          <label for="visualizacao">Visualização</label>
+          <select id="visualizacao">
+            <option value="previsao" selected>Gráfico de previsão linear</option>
+            <option value="best">Previsão BEST (ONNX)</option>
+            <option value="curva">Curva de referência</option>
+          </select>
         </div>
       </div>
 
@@ -115,8 +122,9 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
   <script>
-    const state = { model: null, datasetCurve: null };
+    const state = { model: null, datasetCurve: null, onnx: null };
 
     async function loadModel() {
       try {
@@ -155,11 +163,48 @@
           prof.push(p);
         }
         state.datasetCurve = { xs, rev, prof };
-        document.getElementById('statusDataset').textContent = 'Curva média carregada.';
+        document.getElementById('statusDataset').textContent = '';
       } catch (e) {
         document.getElementById('statusDataset').textContent = 'Curva média não disponível.';
         console.warn(e);
       }
+    }
+
+    async function initOnnx() {
+      const s = document.getElementById('status');
+      try {
+        // Tenta carregar sessão ONNX e metadados
+        const session = await ort.InferenceSession.create('model_best.onnx');
+        const resMeta = await fetch('model_best_meta.json');
+        if (!resMeta.ok) throw new Error('Metadados ONNX não encontrados');
+        const meta = await resMeta.json();
+        if (!meta || !Array.isArray(meta.features)) throw new Error('Metadados inválidos');
+        state.onnx = { session, features: meta.features, name: meta.model_name };
+        s.textContent = `BEST (ONNX) carregado: ${meta.model_name}`;
+        s.style.color = '#0a7d1e';
+      } catch (e) {
+        console.warn('ONNX indisponível:', e);
+        // Mantém status neutro; cálculo usará fallback linear silenciosamente
+      }
+    }
+
+    async function predictQuantityOnnx(precoOriginal, custoProducao, descontoPct) {
+      if (!state.onnx || !state.onnx.session) throw new Error('Sessão ONNX indisponível');
+      const precoFinal = precoOriginal * (1 - descontoPct);
+      const featMap = {
+        custo_producao: custoProducao,
+        preco_original: precoOriginal,
+        desconto_pct: descontoPct,
+        preco_final: precoFinal,
+      };
+      const feats = state.onnx.features.map(k => Number(featMap[k] ?? 0));
+      const inputName = state.onnx.session.inputNames ? state.onnx.session.inputNames[0] : 'float_input';
+      const tensor = new ort.Tensor('float32', Float32Array.from(feats), [1, feats.length]);
+      const feeds = {}; feeds[inputName] = tensor;
+      const results = await state.onnx.session.run(feeds);
+      const outputName = state.onnx.session.outputNames ? state.onnx.session.outputNames[0] : Object.keys(results)[0];
+      const y = Array.isArray(results[outputName].data) ? results[outputName].data[0] : results[outputName].data[0];
+      return Math.max(0, Number(y));
     }
 
     function predictQuantity(precoOriginal, custoProducao, descontoPct) {
@@ -184,7 +229,7 @@
 
     let chart;
 
-    function onCalc() {
+    async function onCalc() {
       const precoOriginal = parseFloat(document.getElementById('preco_original').value);
       const custoProducao = parseFloat(document.getElementById('custo_producao').value);
       const maxDescontoPct = Math.min(4, Math.max(0, parseFloat(document.getElementById('max_desconto').value))) / 100.0;
@@ -197,6 +242,7 @@
       }
 
       const objetivo = document.getElementById('objetivo').value; // 'receita' | 'lucro'
+      const visualizacao = document.getElementById('visualizacao').value; // 'previsao' | 'curva' | 'best'
       let best = { desconto: 0, receita: -Infinity, lucro: -Infinity, qtd: 0, precoFinal: 0 };
       const xs = [];
       const receitaArr = [];
@@ -204,7 +250,18 @@
       const invalidoArr = [];
       let constraintHit = false;
       for (let d = 0; d <= maxDescontoPct + 1e-12; d += stepPct) {
-        const qtd = predictQuantity(precoOriginal, custoProducao, d);
+        let qtd;
+        if (visualizacao === 'best') {
+          if (!state.onnx) {
+            // ONNX não carregado: usa previsão linear silenciosamente
+            qtd = predictQuantity(precoOriginal, custoProducao, d);
+          } else {
+            try { qtd = await predictQuantityOnnx(precoOriginal, custoProducao, d); }
+            catch (e) { console.warn(e); qtd = predictQuantity(precoOriginal, custoProducao, d); }
+          }
+        } else {
+          qtd = predictQuantity(precoOriginal, custoProducao, d);
+        }
         const precoFinal = precoOriginal * (1 - d);
         const receita = precoFinal * qtd;
         const lucro = (precoFinal - custoProducao) * qtd;
@@ -271,37 +328,40 @@
 
       // Atualiza/Cria gráfico
       const ctx = document.getElementById('chart');
-      const datasets = [
-          {
-            label: 'Receita (R$)',
-            data: receitaArr,
-            borderColor: '#22d3ee',
-            backgroundColor: 'rgba(34, 211, 238, 0.2)',
-            tension: 0.25,
-            borderWidth: 2,
-          },
-          {
-            label: 'Lucro (R$) – restringido',
-            data: lucroArr,
-            borderColor: '#4f46e5',
-            backgroundColor: 'rgba(79, 70, 229, 0.2)',
-            tension: 0.25,
-            borderWidth: 2,
-          }
-        ];
+      const datasets = [];
+      if (visualizacao === 'previsao' || visualizacao === 'best') {
+        datasets.push({
+          label: visualizacao === 'best' ? 'Receita (BEST ONNX)' : 'Receita (R$)',
+          data: receitaArr,
+          borderColor: '#22d3ee',
+          backgroundColor: 'rgba(34, 211, 238, 0.2)',
+          tension: 0.25,
+          borderWidth: 2,
+        });
+        datasets.push({
+          label: visualizacao === 'best' ? 'Lucro (BEST ONNX) – restringido' : 'Lucro (R$) – restringido',
+          data: lucroArr,
+          borderColor: '#4f46e5',
+          backgroundColor: 'rgba(79, 70, 229, 0.2)',
+          tension: 0.25,
+          borderWidth: 2,
+        });
+      }
 
       // marcador do ponto ótimo
-      const markerData = xs.map((_, i) => (i === bestIndex ? (objetivo === 'receita' ? receitaArr[i] : lucroArr[i]) : null));
-      datasets.push({
-        label: objetivo === 'receita' ? 'Ótimo (receita)' : 'Ótimo (lucro)',
-        data: markerData,
-        borderColor: objetivo === 'receita' ? '#22d3ee' : '#4f46e5',
-        backgroundColor: 'rgba(255,255,255,0.85)',
-        pointRadius: 6,
-        pointHoverRadius: 7,
-        showLine: false,
-      });
-      const showDataset = document.getElementById('mostrar_dataset').checked && state.datasetCurve;
+      if (visualizacao === 'previsao' || visualizacao === 'best') {
+        const markerData = xs.map((_, i) => (i === bestIndex ? (objetivo === 'receita' ? receitaArr[i] : lucroArr[i]) : null));
+        datasets.push({
+          label: objetivo === 'receita' ? 'Ótimo (receita)' : 'Ótimo (lucro)',
+          data: markerData,
+          borderColor: objetivo === 'receita' ? '#22d3ee' : '#4f46e5',
+          backgroundColor: 'rgba(255,255,255,0.85)',
+          pointRadius: 6,
+          pointHoverRadius: 7,
+          showLine: false,
+        });
+      }
+      const showDataset = document.getElementById('mostrar_dataset').checked && state.datasetCurve && visualizacao === 'curva';
       if (showDataset) {
         datasets.push({
           label: 'Receita média (dataset)',
@@ -348,7 +408,9 @@
     document.getElementById('btnCalc').addEventListener('click', onCalc);
     loadModel();
     loadDatasetCurve();
+    initOnnx();
     document.getElementById('mostrar_dataset').addEventListener('change', () => { if (!document.getElementById('output').hidden) onCalc(); });
+    document.getElementById('visualizacao').addEventListener('change', () => { if (!document.getElementById('output').hidden) onCalc(); });
     document.getElementById('objetivo').addEventListener('change', () => { if (!document.getElementById('output').hidden) onCalc(); });
   </script>
 </body>

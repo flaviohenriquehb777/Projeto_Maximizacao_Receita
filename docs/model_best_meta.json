@@ -1,0 +1,10 @@
+{
+  "features": [
+    "custo_producao",
+    "preco_original",
+    "desconto_pct",
+    "preco_final"
+  ],
+  "target": "quantidade_vendida_mes",
+  "model_name": "GradientBoosting"
+}

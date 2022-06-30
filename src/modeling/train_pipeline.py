@@ -32,7 +32,7 @@ try:
 except Exception:
     dagshub = None
 
-from src.config.paths import DADOS_AMOR_A_CAKES, MODELS_DIR
+from src.config.paths import DADOS_AMOR_A_CAKES, MODELS_DIR, PROJECT_ROOT
 
 
 @dataclass
@@ -58,7 +58,8 @@ def init_tracking():
     password = os.getenv("MLFLOW_TRACKING_PASSWORD") or os.getenv("DAGSHUB_TOKEN")
     token_env = os.getenv("MLFLOW_TRACKING_TOKEN") or os.getenv("DAGSHUB_TOKEN")
 
-    has_credentials = bool(username) and bool(password or token_env)
+    # Aceitar token-only (sem username/password) para MLflow em DagsHub
+    has_credentials = bool(token_env) or (bool(username) and bool(password))
 
     if has_credentials:
         # Garantir que MLflow leia credenciais via env
@@ -140,7 +141,7 @@ def select_features(df: pd.DataFrame):
     return X, y, feature_cols, target
 
 
-def get_model_specs():
+def get_model_specs(feature_cols=None):
     specs = [
         ModelSpec("LinearRegression", LinearRegression(), {}),
         ModelSpec("RidgeCV", Pipeline([('scaler', StandardScaler()), ('model', RidgeCV(alphas=np.logspace(-3, 3, 21), cv=5))]), {}),
@@ -150,7 +151,39 @@ def get_model_specs():
         ModelSpec("GradientBoosting", GradientBoostingRegressor(random_state=42), {}),
     ]
     if XGBRegressor is not None:
-        specs.append(ModelSpec("XGBRegressor", XGBRegressor(random_state=42, n_estimators=500, learning_rate=0.05, max_depth=4, subsample=0.9, colsample_bytree=0.9, reg_alpha=0.0, reg_lambda=1.0), {}))
+        # Mapeia restrições monotônicas conforme ordem das features
+        constraints_map = {
+            'custo_producao': -1,   # custo maior → menor quantidade
+            'preco_original': -1,   # preço maior → menor quantidade
+            'desconto_pct': +1,     # desconto maior → maior quantidade
+            'preco_final': -1,      # preço final maior → menor quantidade
+        }
+        constraints = []
+        if feature_cols is None:
+            feature_cols = [c for c in ['custo_producao','preco_original','desconto_pct','preco_final']]
+        for c in feature_cols:
+            constraints.append(constraints_map.get(c, 0))
+        # XGBoost aceita string com parênteses, ex.: "(0,-1,1,-1)"
+        constraints_str = "(" + ",".join(str(v) for v in constraints) + ")"
+        specs.append(ModelSpec(
+            "XGBRegressor",
+            XGBRegressor(
+                random_state=42,
+                n_estimators=600,
+                learning_rate=0.03,
+                max_depth=5,
+                subsample=0.9,
+                colsample_bytree=0.9,
+                reg_alpha=0.0,
+                reg_lambda=2.0,
+                min_child_weight=5,
+                gamma=0.0,
+                tree_method='hist',
+                objective='reg:squarederror',
+                monotone_constraints=constraints_str,
+            ),
+            {'monotone_constraints': constraints_str}
+        ))
     return specs
 
 
@@ -232,7 +265,7 @@ def main():
     best_profit = -float('inf')
     best_entry = None
 
-    for spec in get_model_specs():
+    for spec in get_model_specs(feature_cols):
         with mlflow.start_run(run_name=f"{spec.name}"):
             mlflow.log_params({'model': spec.name, **spec.params})
             metrics = cross_validate_model(spec.estimator, X, y, cv)
@@ -292,6 +325,10 @@ def main():
     best_out = MODELS_DIR / 'best_model_max_receita.pkl'
     import joblib
     joblib.dump(best_model, best_out)
+    try:
+        mlflow.log_artifact(str(best_out))
+    except Exception:
+        pass
 
     # Exportar JSON para UI: se melhor for linear, exporta; caso contrário, exporta LinearRegression como baseline
     json_target_path = MODELS_DIR / 'model_linear.json'
@@ -301,6 +338,10 @@ def main():
         # Treinar baseline linear para inferência no front-end
         baseline = LinearRegression().fit(X, y)
         export_linear_json(baseline, feature_cols, target, json_target_path)
+    try:
+        mlflow.log_artifact(str(json_target_path))
+    except Exception:
+        pass
 
     # Artefato: curva média de receita/lucro vs desconto
     try:
@@ -322,9 +363,17 @@ def main():
                 'mean_revenue': float(np.mean(revenue)),
                 'mean_profit': float(np.mean(profit)),
             })
-        curve_path = MODELS_DIR / 'curve_business_metric.csv'
-        pd.DataFrame(rows).to_csv(curve_path, index=False)
-        mlflow.log_artifact(str(curve_path))
+        curve_models_path = MODELS_DIR / 'curve_business_metric.csv'
+        pd.DataFrame(rows).to_csv(curve_models_path, index=False)
+        mlflow.log_artifact(str(curve_models_path))
+        # Também publicar em docs/ para uso pelo site
+        try:
+            docs_dir = PROJECT_ROOT / 'docs'
+            docs_dir.mkdir(exist_ok=True)
+            curve_docs_path = docs_dir / 'curve_business_metric.csv'
+            pd.DataFrame(rows).to_csv(curve_docs_path, index=False)
+        except Exception as e_pub:
+            warnings.warn(f"Falha ao publicar curva em docs/: {e_pub}")
     except Exception as e:
         warnings.warn(f"Falha ao gerar curva de negócio: {e}")
 
@@ -334,6 +383,8 @@ def main():
     try:
         snapshot = {
             'best_model': best_label,
+            'best_model_name': best_label,
+            'feature_order': feature_cols,
             'metrics': best_metrics,
         }
         snapshot_path = MODELS_DIR / 'metrics_snapshot.json'
@@ -371,6 +422,75 @@ def main():
             mlflow.log_artifact(str(shap_path))
     except Exception as e:
         warnings.warn(f"Falha ao gerar SHAP: {e}")
+
+    # Exportar ONNX do best model e publicar em docs
+    try:
+        from skl2onnx import convert_sklearn  # type: ignore
+        from skl2onnx.common.data_types import FloatTensorType  # type: ignore
+        onnx_out_models = MODELS_DIR / 'model_best.onnx'
+        initial_type = [('float_input', FloatTensorType([None, len(feature_cols)]))]
+        onnx_model = convert_sklearn(best_model, initial_types=initial_type)
+        with open(onnx_out_models, 'wb') as f:
+            f.write(onnx_model.SerializeToString())
+        # Meta: ordem das features
+        meta = {
+            'features': feature_cols,
+            'target': target,
+            'model_name': best_label,
+        }
+        meta_models_path = MODELS_DIR / 'model_best_meta.json'
+        meta_models_path.write_text(json.dumps(meta, indent=2), encoding='utf-8')
+        try:
+            mlflow.log_artifact(str(onnx_out_models))
+            mlflow.log_artifact(str(meta_models_path))
+        except Exception:
+            pass
+        # Publicar também em docs/
+        try:
+            docs_dir = PROJECT_ROOT / 'docs'
+            docs_dir.mkdir(exist_ok=True)
+            onnx_out_docs = docs_dir / 'model_best.onnx'
+            with open(onnx_out_docs, 'wb') as f:
+                f.write(onnx_model.SerializeToString())
+            meta_docs_path = docs_dir / 'model_best_meta.json'
+            meta_docs_path.write_text(json.dumps(meta, indent=2), encoding='utf-8')
+        except Exception as e_pub:
+            warnings.warn(f"Falha ao publicar ONNX/meta em docs/: {e_pub}")
+    except Exception as e1:
+        warnings.warn(f"Falha ao converter best model para ONNX via skl2onnx: {e1}")
+        # Tentativa alternativa para XGBoost
+        try:
+            from onnxmltools.convert import convert_xgboost  # type: ignore
+            from onnxmltools.convert.common.data_types import FloatTensorType  # type: ignore
+            onnx_out_models = MODELS_DIR / 'model_best.onnx'
+            initial_type = [('float_input', FloatTensorType([None, len(feature_cols)]))]
+            onnx_model = convert_xgboost(best_model, initial_types=initial_type)
+            with open(onnx_out_models, 'wb') as f:
+                f.write(onnx_model.SerializeToString())
+            meta = {
+                'features': feature_cols,
+                'target': target,
+                'model_name': best_label,
+            }
+            meta_models_path = MODELS_DIR / 'model_best_meta.json'
+            meta_models_path.write_text(json.dumps(meta, indent=2), encoding='utf-8')
+            try:
+                mlflow.log_artifact(str(onnx_out_models))
+                mlflow.log_artifact(str(meta_models_path))
+            except Exception:
+                pass
+            try:
+                docs_dir = PROJECT_ROOT / 'docs'
+                docs_dir.mkdir(exist_ok=True)
+                onnx_out_docs = docs_dir / 'model_best.onnx'
+                with open(onnx_out_docs, 'wb') as f:
+                    f.write(onnx_model.SerializeToString())
+                meta_docs_path = docs_dir / 'model_best_meta.json'
+                meta_docs_path.write_text(json.dumps(meta, indent=2), encoding='utf-8')
+            except Exception as e_pub:
+                warnings.warn(f"Falha ao publicar ONNX/meta (xgboost) em docs/: {e_pub}")
+        except Exception as e2:
+            warnings.warn(f"Falha ao converter XGBoost para ONNX: {e2}")
 
 
 if __name__ == '__main__':

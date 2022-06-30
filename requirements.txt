@@ -12,3 +12,6 @@ dagshub==0.3.19
 openpyxl==3.1.5
 pytest==8.3.4
 shap==0.45.0
+onnx==1.16.1
+skl2onnx==1.16.0
+onnxmltools==1.12.0

@@ -101,9 +101,12 @@ Os resultados dependem dos coeficientes reais treinados no seu ambiente. A aplic
 * **Python:** Linguagem de programação principal.
 * **Pandas:** Para manipulação e análise de dados tabulares.
 * **NumPy:** Para operações numéricas de alto desempenho.
-* **Scikit-learn (sklearn):** Para pré-processamento (MinMaxScaler, RobustScaler), modelagem (LinearRegression, Pipeline), divisão de dados (train_test_split) e avaliação de modelos (cross_val_score, mean_squared_error, r2_score, learning_curve).
+* **Scikit-learn (sklearn):** Para pré-processamento e modelagem (LinearRegression, Pipeline), divisão de dados (train_test_split) e avaliação de modelos (RMSE, MAE, R²).
 * **Matplotlib:** Para criação de gráficos, especialmente a curva de aprendizagem.
 * **Seaborn:** Para visualizações estatísticas e aprimoramento estético dos gráficos.
+* **XGBoost:** Como candidato não linear com restrições monotônicas e regularização.
+* **ONNX + skl2onnx/onnxmltools:** Exportação do Best Model para uso estático no navegador.
+* **onnxruntime-web:** Execução do modelo ONNX diretamente no browser.
 
 ## Instalação e Uso
 
@@ -141,12 +144,8 @@ Para configurar e executar este projeto em seu ambiente local, siga as instruç�
    pytest -q
    python -m src.modeling.train_pipeline
    ```
-   - Artefatos gerados em `models/`: `best_model_max_receita.pkl`, `curve_business_metric.csv`, `model_linear.json`, `shap_summary.png`.
-   - Para a aplicação web, copie (ou use a CI) para `docs/`:
-   ```bash
-   cp models/model_linear.json docs/model_linear.json
-   cp models/curve_business_metric.csv docs/curve_business_metric.csv
-   ```
+   - Artefatos gerados em `models/`: `best_model_max_receita.pkl`, `model_best.onnx`, `model_best_meta.json`, `curve_business_metric.csv`, `model_linear.json`, `shap_summary.png`.
+   - O pipeline publica automaticamente em `docs/`: `model_best.onnx`, `model_best_meta.json`, `curve_business_metric.csv`, além de manter `model_linear.json` para compatibilidade.
 
 6. **Suba o site estático localmente**
    ```bash
@@ -163,6 +162,35 @@ Para configurar e executar este projeto em seu ambiente local, siga as instruç�
   - Executa `pytest` com `PYTHONPATH`
   - Treina com `python -m src.modeling.train_pipeline`
   - Copia artefatos para `docs/` e publica GitHub Pages
+
+## Modelo na página vs Best Model
+
+- A aplicação web em `docs/index.html` utiliza `docs/model_linear.json` para prever quantidade e calcular receita/lucro no gráfico de previsão linear.
+- O pipeline seleciona o **Best Model** por lucro esperado em validação (ex.: `GradientBoosting`). Esse modelo é salvo em `models/best_model_max_receita.pkl` e seus artefatos (curva de negócio, métricas) são registrados.
+ - A página agora suporta três visualizações:
+   - `Gráfico de previsão linear`: usa o JSON linear para varrer descontos e calcular receita/lucro previstos.
+   - `Previsão BEST (ONNX)`: usa o modelo não linear exportado em ONNX (`docs/model_best.onnx`) rodando no navegador com `onnxruntime-web`.
+   - `Curva de referência`: usa `docs/curve_business_metric.csv`, gerada no treino, para visualizar as médias de receita/lucro do dataset.
+ - Publicação dos artefatos para a página:
+   - Após `python -m src.modeling.train_pipeline`, os arquivos são gerados em `models/` e também publicados em `docs/`:
+     - `docs/model_linear.json` (baseline linear para compatibilidade)
+     - `docs/model_best.onnx` e `docs/model_best_meta.json` (ordem das features) para a visualização BEST
+     - `docs/curve_business_metric.csv` (curva média de negócio)
+ - Dependências adicionadas para exportação e execução do ONNX: `onnx`, `skl2onnx`, `onnxmltools`. No front-end, o `index.html` importa `onnxruntime-web` via CDN.
+ - Melhorias no XGBoost: passamos a usar restrições monotônicas alinhadas ao domínio (`custo_producao`, `preco_original` e `preco_final` com efeito negativo; `desconto_pct` com efeito positivo), regularização (`reg_lambda`, `min_child_weight`), e configuração de busca com `tree_method='hist'`. Isso ajuda a manter previsões consistentes e estáveis para a maximização de receita/lucro.
+ - Observação: a escolha do Best Model (tipicamente não linear, como `GradientBoosting` ou `XGBoost`) impacta as curvas e o ponto ótimo. A execução ONNX no navegador permite previsões fiéis sem servidor, mantendo uma experiência profissional e estática.
+
+## Política de datas de commits (Jan–Jun/2022)
+
+- Todos os commits do projeto devem ter datas entre `2022-01-01` e `2022-06-30`.
+- O pipeline possui um guard no CI que falha caso algum commit esteja fora desse intervalo.
+- Para facilitar no Windows/PowerShell:
+  - Novo commit com mensagem e data fixa:
+    - `powershell -ExecutionPolicy Bypass -File scripts/commit_2022.ps1 -Message "sua mensagem" -DateISO "2022-06-30T12:00:00Z"`
+  - Emendar o último commit mantendo a mensagem:
+    - `powershell -ExecutionPolicy Bypass -File scripts/commit_2022.ps1 -DateISO "2022-06-30T12:00:00Z"`
+
+Observação: o script aplica clamp automático se a data fornecida estiver fora do intervalo permitido.
 
 ## Integração com DagsHub (MLflow)
 
