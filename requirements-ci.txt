@@ -9,3 +9,5 @@ mlflow==2.12.2
 dagshub==0.3.19
 openpyxl==3.1.5
 pytest==8.3.4
+setuptools>=60.0.0
+wheel>=0.38.0
