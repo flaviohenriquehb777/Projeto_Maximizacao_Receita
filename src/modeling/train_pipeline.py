@@ -10,7 +10,10 @@ from sklearn.model_selection import KFold, TimeSeriesSplit, train_test_split
 from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
 from sklearn.linear_model import LinearRegression, RidgeCV, LassoCV, ElasticNetCV
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
-from xgboost import XGBRegressor
+try:
+    from xgboost import XGBRegressor
+except Exception:
+    XGBRegressor = None
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
@@ -113,15 +116,17 @@ def select_features(df: pd.DataFrame):
 
 
 def get_model_specs():
-    return [
+    specs = [
         ModelSpec("LinearRegression", LinearRegression(), {}),
         ModelSpec("RidgeCV", Pipeline([('scaler', StandardScaler()), ('model', RidgeCV(alphas=np.logspace(-3, 3, 21), cv=5))]), {}),
         ModelSpec("LassoCV", Pipeline([('scaler', StandardScaler()), ('model', LassoCV(alphas=None, cv=5, max_iter=5000))]), {}),
         ModelSpec("ElasticNetCV", Pipeline([('scaler', StandardScaler()), ('model', ElasticNetCV(l1_ratio=[.1,.3,.5,.7,.9], cv=5, max_iter=5000))]), {}),
         ModelSpec("RandomForest", RandomForestRegressor(n_estimators=300, random_state=42), {}),
         ModelSpec("GradientBoosting", GradientBoostingRegressor(random_state=42), {}),
-        ModelSpec("XGBRegressor", XGBRegressor(random_state=42, n_estimators=500, learning_rate=0.05, max_depth=4, subsample=0.9, colsample_bytree=0.9, reg_alpha=0.0, reg_lambda=1.0), {}),
     ]
+    if XGBRegressor is not None:
+        specs.append(ModelSpec("XGBRegressor", XGBRegressor(random_state=42, n_estimators=500, learning_rate=0.05, max_depth=4, subsample=0.9, colsample_bytree=0.9, reg_alpha=0.0, reg_lambda=1.0), {}))
+    return specs
 
 
 def _simulate_expected_profit(model, X_valid: pd.DataFrame) -> float:

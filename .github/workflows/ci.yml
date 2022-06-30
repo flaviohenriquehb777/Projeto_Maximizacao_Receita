@@ -31,6 +31,7 @@ jobs:
       - name: Run tests
         env:
           PYTHONPATH: ${{ github.workspace }}
+          CI: true
         run: |
           pytest -q
 
@@ -44,6 +45,7 @@ jobs:
           DAGSHUB_REPO_NAME: ${{ secrets.DAGSHUB_REPO_NAME }}
           DAGSHUB_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
           PYTHONPATH: ${{ github.workspace }}
+          CI: true
         run: |
           python -m src.modeling.train_pipeline
           cp models/model_linear.json docs/model_linear.json

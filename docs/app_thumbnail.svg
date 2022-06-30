@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#111827"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="1280" height="720" fill="url(#bg)"/>
+
+  <!-- Header -->
+  <rect x="80" y="60" width="1120" height="80" rx="12" fill="#1f2937"/>
+  <text x="120" y="110" font-family="Inter, Arial" font-size="36" fill="#e5e7eb" font-weight="600">
+    Maximização de Receita – Preview da Aplicação
+  </text>
+
+  <!-- Cards -->
+  <rect x="80" y="170" width="480" height="460" rx="12" fill="#111827" stroke="#374151" stroke-width="2"/>
+  <text x="110" y="210" font-family="Inter, Arial" font-size="24" fill="#9ca3af">Parametros</text>
+  <text x="110" y="250" font-family="Inter, Arial" font-size="18" fill="#d1d5db">Preço Original • Desconto (%) • Custo</text>
+
+  <!-- Chart area -->
+  <rect x="600" y="170" width="600" height="460" rx="12" fill="#111827" stroke="#374151" stroke-width="2"/>
+  <text x="630" y="210" font-family="Inter, Arial" font-size="24" fill="#9ca3af">Curva de Receita vs Desconto</text>
+
+  <!-- Axes -->
+  <line x1="640" y1="580" x2="1160" y2="580" stroke="#4b5563" stroke-width="2"/>
+  <line x1="640" y1="580" x2="640" y2="260" stroke="#4b5563" stroke-width="2"/>
+
+  <!-- Curve -->
+  <path d="M 640 560 C 760 520, 880 420, 1160 340" stroke="#22c55e" stroke-width="4" fill="none"/>
+  <circle cx="940" cy="410" r="6" fill="#22c55e"/>
+  <text x="960" y="410" font-family="Inter, Arial" font-size="16" fill="#10b981">Desconto Ótimo</text>
+
+  <!-- Footer note -->
+  <text x="80" y="660" font-family="Inter, Arial" font-size="16" fill="#9ca3af">
+    Pré-visualização estática. Clique para abrir a aplicação publicada no GitHub Pages.
+  </text>
+</svg>

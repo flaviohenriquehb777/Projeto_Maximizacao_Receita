@@ -1,10 +1,8 @@
 # Aplicação Web – Maximização de Receita
 
-[![Abrir aplicação (GitHub Pages)](docs/favicon_logo.png)](https://flaviohenriquehb777.github.io/Projeto_Maximizacao_Receita/)
+[![Abrir a aplicação (GitHub Pages)](docs/app_thumbnail.svg)](https://flaviohenriquehb777.github.io/Projeto_Maximizacao_Receita/index.html)
 
-Abra a aplicação estática em: https://flaviohenriquehb777.github.io/Projeto_Maximizacao_Receita/
-
-[![Abrir a aplicação](docs/app_thumbnail.svg)](https://flaviohenriquehb777.github.io/Projeto_Maximizacao_Receita/)
+Abra a aplicação estática em: https://flaviohenriquehb777.github.io/Projeto_Maximizacao_Receita/index.html
 
 Abra a aplicação acima. Abaixo, segue a documentação completa do projeto com o fluxo atualizado.
 
@@ -169,7 +167,7 @@ Com credenciais configuradas (secrets), os treinos podem ser registrados no Dags
 - `MLFLOW_EXPERIMENT_NAME`: nome do experimento
 - `MLFLOW_TRACKING_URI`, `MLFLOW_TRACKING_USERNAME`, `MLFLOW_TRACKING_PASSWORD` ou token
 
-Em seguida, habilite no pipeline (ou CI) o log de parâmetros, métricas e artefatos (best model e explicabilidade).
+Em seguida, habilite no pipeline (ou CI) o log de parâmetros, métricas e artefatos (best model e explicabilidade). Caso os secrets não estejam configurados, o pipeline segue com tracking local sem falhar.
 
 ## Licença:
 
