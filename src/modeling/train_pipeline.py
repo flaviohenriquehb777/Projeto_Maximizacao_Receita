@@ -110,6 +110,12 @@ def init_tracking():
                 mlflow.set_experiment(exp_name)
             except Exception as e_exp2:
                 warnings.warn(f"Falha ao definir experimento local '{exp_name}': {e_exp2}. Prosseguindo com experimento padrão.")
+    try:
+        uri = mlflow.get_tracking_uri()
+        print(f"[MLflow] Tracking URI ativo: {uri}")
+        print(f"[MLflow] Experimento base: {exp_name}")
+    except Exception:
+        pass
 
     # Não chamar dagshub.init aqui para evitar fluxos OAuth interativos na CI.
 
@@ -310,7 +316,7 @@ def main():
     results = []
     best_profit = -float('inf')
     best_entry = None
-    # Experimento único (ex.: context7); todos os runs ficam agrupados nele
+    # Base do experimento (ex.: context7); usaremos experimento separado por modelo
     exp_base = os.getenv("MLFLOW_EXPERIMENT_NAME", "max_receita_cafeterias")
     context_label = os.getenv("CONTEXT_LABEL") or os.getenv("CONTEXT") or "default"
     commit_sha = os.getenv("GITHUB_SHA") or os.getenv("CI_COMMIT_SHA") or "unknown"
@@ -318,6 +324,12 @@ def main():
     # Limitar a 6 modelos (exclui RandomForest para manter 6 no total)
     specs = [s for s in get_model_specs(feature_cols, target) if s.name != 'RandomForest']
     for spec in specs:
+        # Definir experimento específico por modelo para registro separado no DagsHub/MLflow
+        exp_name_model = f"{exp_base}_{spec.name}"
+        try:
+            mlflow.set_experiment(exp_name_model)
+        except Exception:
+            pass
         with mlflow.start_run(run_name=f"{spec.name}") as active_run:
             run_id = active_run.info.run_id
             mlflow.log_params({'model': spec.name, **spec.params})
@@ -325,7 +337,7 @@ def main():
             try:
                 mlflow.set_tag('context', context_label)
                 mlflow.set_tag('commit_sha', commit_sha)
-                mlflow.set_tag('experiment', exp_base)
+                mlflow.set_tag('experiment', exp_name_model)
             except Exception:
                 pass
             metrics = cross_validate_model(spec.estimator, X, y, cv, target)
