@@ -1,0 +1,33 @@
+# Diretórios e arquivos do Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Checkpoints de notebooks
+*.ipynb_checkpoints/
+
+# Arquivos de ambiente
+.env
+.env.*
+
+# Arquivos temporários e do sistema
+*.DS_Store
+*.log
+*.tmp
+*.bak
+
+# Dados de entrada/saída (ajuste conforme necessário)
+*.parquet
+*.pkl
+*.csv
+*.xlsx
+
+# Modelos e resultados
+models/
+logs/
+outputs/
+report/
+
+# IDEs e editores
+.vscode/
+.idea/
