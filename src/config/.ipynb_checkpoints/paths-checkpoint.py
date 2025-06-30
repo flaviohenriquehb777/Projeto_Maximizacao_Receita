@@ -24,5 +24,5 @@ MODELS_DIR = PROJECT_ROOT / "models"
 MODELS_DIR.mkdir(exist_ok=True)  # Cria a pasta se não existir
 
 
-REPORTS_DIR = PROJECT_ROOT / "report"
-REPORTS_DIR.mkdir(exist_ok=True) 
+# REPORTS_DIR = PROJECT_ROOT / "report"
+# REPORTS_DIR.mkdir(exist_ok=True) 
