@@ -2,4 +2,3 @@
     remote = dagshub
 ['remote "dagshub"']
     url = https://dagshub.com/flaviohenriquehb777/Projeto_Maximizacao_Receita.dvc
-    auth = basic
