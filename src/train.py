@@ -58,8 +58,29 @@ def setup_tracking():
     return "local"
 
 
+def _synthetic_df(n_rows: int = 200, random_state: int = RANDOM_STATE) -> pd.DataFrame:
+    rng = np.random.default_rng(random_state)
+    preco_venda = rng.normal(50, 10, size=n_rows)
+    preco_original = preco_venda + rng.normal(5, 3, size=n_rows)
+    desconto = rng.normal(0.1, 0.05, size=n_rows)
+    venda_qtd = 0.5 * preco_venda - 0.3 * desconto + rng.normal(0, 1, size=n_rows)
+
+    df = pd.DataFrame({
+        "PrecoVenda": preco_venda,
+        "PrecoOriginal": preco_original,
+        "Desconto": desconto,
+        "VendaQtd": venda_qtd,
+    })
+    return df
+
+
 def load_and_prepare_data(path: Path) -> pd.DataFrame:
-    df = pd.read_excel(path)
+    if not path.exists():
+        warnings.warn(
+            f"Dataset não encontrado em '{path}'. Usando dados sintéticos para CI.")
+        df = _synthetic_df()
+    else:
+        df = pd.read_excel(path)
 
     # Escalonamento conforme notebooks
     minmax_cols = ["PrecoVenda", "PrecoOriginal", "VendaQtd"]
