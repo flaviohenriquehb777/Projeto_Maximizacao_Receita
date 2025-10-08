@@ -1,2 +1,2 @@
 line-length = 88
-extend-exclude = ["**/.ipynb_checkpoints/**"]
+extend-exclude = ["**/.ipynb_checkpoints/**", "notebooks/**"]

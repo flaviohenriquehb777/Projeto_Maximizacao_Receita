@@ -1,20 +1,18 @@
-import os
 import json
+import os
+import sys
 import warnings
 from pathlib import Path
-import sys
 
-import pandas as pd
-import numpy as np
 import joblib
-
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import MinMaxScaler, RobustScaler
-from sklearn.linear_model import LinearRegression
-from sklearn.pipeline import Pipeline
-from sklearn.metrics import mean_squared_error, r2_score
-
 import mlflow
+import numpy as np
+import pandas as pd
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import MinMaxScaler, RobustScaler
 
 try:
     import dagshub
@@ -28,7 +26,6 @@ except Exception:
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 from src.config.paths import DADOS_AMOR_A_CAKES, MODELS_DIR, PROJECT_ROOT
-
 
 RANDOM_STATE = 42
 
@@ -65,19 +62,22 @@ def _synthetic_df(n_rows: int = 200, random_state: int = RANDOM_STATE) -> pd.Dat
     desconto = rng.normal(0.1, 0.05, size=n_rows)
     venda_qtd = 0.5 * preco_venda - 0.3 * desconto + rng.normal(0, 1, size=n_rows)
 
-    df = pd.DataFrame({
-        "PrecoVenda": preco_venda,
-        "PrecoOriginal": preco_original,
-        "Desconto": desconto,
-        "VendaQtd": venda_qtd,
-    })
+    df = pd.DataFrame(
+        {
+            "PrecoVenda": preco_venda,
+            "PrecoOriginal": preco_original,
+            "Desconto": desconto,
+            "VendaQtd": venda_qtd,
+        }
+    )
     return df
 
 
 def load_and_prepare_data(path: Path) -> pd.DataFrame:
     if not path.exists():
         warnings.warn(
-            f"Dataset não encontrado em '{path}'. Usando dados sintéticos para CI.")
+            f"Dataset não encontrado em '{path}'. Usando dados sintéticos para CI."
+        )
         df = _synthetic_df()
     else:
         df = pd.read_excel(path)
@@ -149,12 +149,14 @@ def main():
     tracking_mode = setup_tracking()
 
     with mlflow.start_run(run_name=f"train_linear_regression_{tracking_mode}"):
-        mlflow.log_params({
-            "model": "LinearRegression",
-            "random_state": RANDOM_STATE,
-            "scaler_minmax": ["PrecoVenda", "PrecoOriginal", "VendaQtd"],
-            "scaler_robust": ["Desconto"],
-        })
+        mlflow.log_params(
+            {
+                "model": "LinearRegression",
+                "random_state": RANDOM_STATE,
+                "scaler_minmax": ["PrecoVenda", "PrecoOriginal", "VendaQtd"],
+                "scaler_robust": ["Desconto"],
+            }
+        )
 
         df = load_and_prepare_data(DADOS_AMOR_A_CAKES)
         mlflow.log_param("dataset_rows", int(df.shape[0]))

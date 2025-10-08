@@ -1,5 +1,4 @@
 import pandas as pd
-
 from sklearn.compose import TransformedTargetRegressor
 from sklearn.model_selection import KFold, cross_validate
 from sklearn.pipeline import Pipeline
@@ -16,7 +15,6 @@ def treinar_e_validar_modelo_regressao(
     n_splits=5,
     random_state=RANDOM_STATE,
 ):
-
     model = construir_pipeline_modelo(regressor, preprocessor, target_transformer)
 
     kf = KFold(n_splits=n_splits, shuffle=True, random_state=random_state)
@@ -52,7 +50,6 @@ def construir_pipeline_modelo(regressor, preprocessor, target_transformer):
 
 
 def organiza_resultados(resultados):
-
     for chave, valor in resultados.items():
         resultados[chave]["time_seconds"] = (
             resultados[chave]["fit_time"] + resultados[chave]["score_time"]

@@ -1,9 +1,7 @@
-from pathlib import Path
-
 import pandas as pd
 
-from src.train import load_and_prepare_data, train_and_evaluate
 from src.config.paths import DADOS_AMOR_A_CAKES
+from src.train import load_and_prepare_data, train_and_evaluate
 
 
 def test_training_pipeline_runs():

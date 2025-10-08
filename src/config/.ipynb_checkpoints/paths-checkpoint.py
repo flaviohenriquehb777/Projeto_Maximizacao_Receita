@@ -1,5 +1,6 @@
-from pathlib import Path
 import sys
+from pathlib import Path
+
 
 def get_project_root() -> Path:
     """Retorna a raiz do projeto baseado em marcadores."""
@@ -25,4 +26,4 @@ MODELS_DIR.mkdir(exist_ok=True)  # Cria a pasta se não existir
 
 
 # REPORTS_DIR = PROJECT_ROOT / "report"
-# REPORTS_DIR.mkdir(exist_ok=True) 
+# REPORTS_DIR.mkdir(exist_ok=True)

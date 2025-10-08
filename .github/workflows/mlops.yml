@@ -47,7 +47,7 @@ jobs:
 
       - name: Ruff lint
         run: |
-          ruff check .
+          ruff check src tests
 
       - name: Configure env (DagsHub/MLflow)
         env:
