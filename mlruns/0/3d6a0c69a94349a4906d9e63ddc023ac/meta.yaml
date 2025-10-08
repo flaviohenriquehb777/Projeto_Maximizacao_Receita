@@ -1,0 +1,15 @@
+artifact_uri: file:///C:/Users/flavi/Documents/GitHub/Projeto_Maximizacao_Receita/mlruns/0/3d6a0c69a94349a4906d9e63ddc023ac/artifacts
+end_time: 1759932966793
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 3d6a0c69a94349a4906d9e63ddc023ac
+run_name: GradientBoosting_lr_0.1
+run_uuid: 3d6a0c69a94349a4906d9e63ddc023ac
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1759932966628
+status: 3
+tags: []
+user_id: FHB_DS

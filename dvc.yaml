@@ -1,0 +1,17 @@
+stages:
+  train:
+    cmd: python src/train.py
+    deps:
+      - src/train.py
+      - dados/dadosVenda.xlsx
+    outs:
+      - models/model_linear.joblib
+      - artifacts/metrics.json
+  experiments:
+    cmd: python src/experiments.py
+    deps:
+      - src/experiments.py
+      - dados/dadosVenda.xlsx
+    outs:
+      - models/model_best.joblib
+      - artifacts/metrics_best.json

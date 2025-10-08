@@ -1,0 +1,155 @@
+import os
+import json
+import warnings
+from pathlib import Path
+import sys
+
+import pandas as pd
+import numpy as np
+import joblib
+
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler, RobustScaler
+from sklearn.linear_model import LinearRegression
+from sklearn.pipeline import Pipeline
+from sklearn.metrics import mean_squared_error, r2_score
+
+import mlflow
+
+try:
+    import dagshub
+except Exception:
+    dagshub = None
+
+try:
+    from dotenv import load_dotenv
+except Exception:
+    load_dotenv = None
+
+sys.path.append(str(Path(__file__).resolve().parents[1]))
+from src.config.paths import DADOS_AMOR_A_CAKES, MODELS_DIR, PROJECT_ROOT
+
+
+RANDOM_STATE = 42
+
+
+def setup_tracking():
+    """Configure MLflow tracking (local by default, DagsHub if env is present)."""
+    if load_dotenv is not None:
+        load_dotenv()
+
+    repo_name = os.getenv("DAGSHUB_REPO")
+    owner = os.getenv("DAGSHUB_OWNER")
+    mlflow_uri = os.getenv("MLFLOW_TRACKING_URI")
+
+    if mlflow_uri:
+        mlflow.set_tracking_uri(mlflow_uri)
+        return "custom"
+
+    if dagshub and repo_name and owner:
+        try:
+            dagshub.init(repo_name, owner, mlflow=True)
+            return "dagshub"
+        except Exception:
+            warnings.warn("Falha ao inicializar DagsHub; usando MLflow local.")
+
+    # Default: local mlflow in ./mlruns
+    mlflow.set_tracking_uri((PROJECT_ROOT / "mlruns").as_uri())
+    return "local"
+
+
+def load_and_prepare_data(path: Path) -> pd.DataFrame:
+    df = pd.read_excel(path)
+
+    # Escalonamento conforme notebooks
+    minmax_cols = ["PrecoVenda", "PrecoOriginal", "VendaQtd"]
+    robust_cols = ["Desconto"]
+
+    # Imputação simples para valores ausentes
+    df[minmax_cols + robust_cols] = df[minmax_cols + robust_cols].apply(
+        lambda s: s.fillna(s.median())
+    )
+
+    mm = MinMaxScaler()
+    rb = RobustScaler()
+
+    df[minmax_cols] = mm.fit_transform(df[minmax_cols])
+    df[robust_cols] = rb.fit_transform(df[robust_cols])
+
+    df = df.rename(
+        columns={
+            "PrecoVenda": "PrecoVenda_scaled",
+            "PrecoOriginal": "PrecoOriginal_scaled",
+            "Desconto": "Desconto_scaled",
+            "VendaQtd": "VendaQtd_scaled",
+        }
+    )
+
+    return df
+
+
+def train_and_evaluate(df: pd.DataFrame):
+    features = ["PrecoVenda_scaled", "PrecoOriginal_scaled", "Desconto_scaled"]
+    target = "VendaQtd_scaled"
+
+    X = df[features]
+    y = df[target]
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=RANDOM_STATE
+    )
+
+    pipeline = Pipeline(steps=[("LinearRegression", LinearRegression())])
+    pipeline.fit(X_train, y_train)
+
+    y_pred = pipeline.predict(X_test)
+    rmse = float(np.sqrt(mean_squared_error(y_test, y_pred)))
+    r2 = float(r2_score(y_test, y_pred))
+
+    return pipeline, {"rmse": rmse, "r2": r2}
+
+
+def save_artifacts(model, metrics: dict):
+    MODELS_DIR.mkdir(exist_ok=True)
+    artifacts_dir = PROJECT_ROOT / "artifacts"
+    artifacts_dir.mkdir(exist_ok=True)
+
+    model_path = MODELS_DIR / "model_linear.joblib"
+    metrics_path = artifacts_dir / "metrics.json"
+
+    joblib.dump(model, model_path)
+    with open(metrics_path, "w", encoding="utf-8") as f:
+        json.dump(metrics, f, ensure_ascii=False, indent=2)
+
+    return model_path, metrics_path
+
+
+def main():
+    tracking_mode = setup_tracking()
+
+    with mlflow.start_run(run_name=f"train_linear_regression_{tracking_mode}"):
+        mlflow.log_params({
+            "model": "LinearRegression",
+            "random_state": RANDOM_STATE,
+            "scaler_minmax": ["PrecoVenda", "PrecoOriginal", "VendaQtd"],
+            "scaler_robust": ["Desconto"],
+        })
+
+        df = load_and_prepare_data(DADOS_AMOR_A_CAKES)
+        mlflow.log_param("dataset_rows", int(df.shape[0]))
+
+        model, metrics = train_and_evaluate(df)
+
+        mlflow.log_metrics(metrics)
+
+        model_path, metrics_path = save_artifacts(model, metrics)
+        mlflow.log_artifact(str(model_path))
+        mlflow.log_artifact(str(metrics_path))
+
+        print("Treino concluído.")
+        print(f"RMSE: {metrics['rmse']:.4f} | R2: {metrics['r2']:.4f}")
+        print(f"Modelo salvo em: {model_path}")
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,52 @@
+name: MLOps CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-train:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Configure env (DagsHub/MLflow)
+        env:
+          DAGSHUB_OWNER: ${{ secrets.DAGSHUB_OWNER }}
+          DAGSHUB_REPO: ${{ secrets.DAGSHUB_REPO }}
+          DAGSHUB_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
+          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+        run: |
+          echo "DAGSHUB_OWNER=${DAGSHUB_OWNER}" >> $GITHUB_ENV
+          echo "DAGSHUB_REPO=${DAGSHUB_REPO}" >> $GITHUB_ENV
+          echo "DAGSHUB_TOKEN=${DAGSHUB_TOKEN}" >> $GITHUB_ENV
+          echo "MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI}" >> $GITHUB_ENV
+
+      - name: DVC pull (optional)
+        run: |
+          dvc pull || true
+
+      - name: Train model
+        run: |
+          python src/train.py
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: model-and-metrics
+          path: |
+            models/model_linear.joblib
+            artifacts/metrics.json
