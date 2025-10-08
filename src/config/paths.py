@@ -16,8 +16,7 @@ DATA_DIR = PROJECT_ROOT / "dados"
 DADOS_AMOR_A_CAKES = DATA_DIR / "dadosVenda.xlsx"  # Nome padronizado
 # DADOS_TRATADOS = DATA_DIR / "dados_tratados.parquet"  # Exemplo
 
-if not DADOS_AMOR_A_CAKES.exists():
-    raise FileNotFoundError(f"Arquivo não encontrado: {DADOS_AMOR_A_CAKES}")
+# Não falhar no import; o código de carga trata ausência do arquivo.
 
 
 MODELS_DIR = PROJECT_ROOT / "models"
@@ -25,4 +24,4 @@ MODELS_DIR.mkdir(exist_ok=True)  # Cria a pasta se não existir
 
 
 # REPORTS_DIR = PROJECT_ROOT / "report"
-# REPORTS_DIR.mkdir(exist_ok=True) 
+# REPORTS_DIR.mkdir(exist_ok=True)
