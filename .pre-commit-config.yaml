@@ -21,5 +21,6 @@ repos:
     rev: 7.0.0
     hooks:
       - id: flake8
+        files: ^(src|tests)/
         args:
-          - --exclude=.git,__pycache__,build,dist,.ipynb_checkpoints
+          - --exclude=.git,__pycache__,build,dist,.ipynb_checkpoints,src/config/.ipynb_checkpoints
