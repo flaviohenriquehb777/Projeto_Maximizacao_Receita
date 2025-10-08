@@ -190,13 +190,15 @@ dvc remote modify dagshub password "$DAGSHUB_TOKEN"
 
 ### CI/CD (GitHub Actions)
 
+![CI Status](https://github.com/flaviohenriquehb777/Projeto_Maximizacao_Receita/actions/workflows/mlops.yml/badge.svg?branch=main)
+
 - Workflow: `.github/workflows/mlops.yml`
 - Em cada push/PR nas branches `main`/`master`:
   - Matrix de Python (`3.10`, `3.11`) com cache de `pip`
   - Cache de DVC baseado em `dvc.lock`
   - Executa `pre-commit` (Black, isort, Flake8, trailing whitespace, EOF)
-  - Executa testes com cobertura (`pytest -q --cov=src --cov-report=xml`)
-  - Upload de cobertura (`coverage.xml`) como artifact
+  - Executa testes com cobertura (`pytest -q --cov=src --cov-report=xml --cov-report=html`)
+  - Upload de cobertura (`coverage.xml`) e HTML (`htmlcov/`) como artifacts
   - Treino e experimentos com fallback sintético quando o dataset não está no remoto
   - Publica modelos e métricas como artifacts
 - Para usar DagsHub no CI, configure os `secrets`:
