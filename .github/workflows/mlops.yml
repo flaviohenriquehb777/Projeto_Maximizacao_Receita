@@ -35,13 +35,29 @@ jobs:
           echo "DAGSHUB_TOKEN=${DAGSHUB_TOKEN}" >> $GITHUB_ENV
           echo "MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI}" >> $GITHUB_ENV
 
-      - name: DVC pull (optional)
+      - name: Configure DVC remote credentials
+        if: env.DAGSHUB_OWNER != '' && env.DAGSHUB_TOKEN != ''
         run: |
-          dvc pull || true
+          dvc remote modify dagshub auth basic
+          dvc remote modify dagshub user "$DAGSHUB_OWNER"
+          dvc remote modify dagshub password "$DAGSHUB_TOKEN"
+
+      - name: DVC pull data
+        run: |
+          dvc pull
 
       - name: Train model
         run: |
           python src/train.py
+
+      - name: Run experiments (log to MLflow/DagsHub)
+        env:
+          DAGSHUB_OWNER: ${{ env.DAGSHUB_OWNER }}
+          DAGSHUB_REPO: ${{ env.DAGSHUB_REPO }}
+          DAGSHUB_TOKEN: ${{ env.DAGSHUB_TOKEN }}
+          MLFLOW_TRACKING_URI: ${{ env.MLFLOW_TRACKING_URI }}
+        run: |
+          python src/experiments.py
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -50,3 +66,5 @@ jobs:
           path: |
             models/model_linear.joblib
             artifacts/metrics.json
+            models/model_best.joblib
+            artifacts/metrics_best.json
