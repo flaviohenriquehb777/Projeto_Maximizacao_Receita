@@ -21,3 +21,5 @@ repos:
     rev: 7.0.0
     hooks:
       - id: flake8
+        args:
+          - --exclude=.git,__pycache__,build,dist,.ipynb_checkpoints
