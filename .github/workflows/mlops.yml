@@ -144,3 +144,4 @@ jobs:
             models/model_best.joblib
             artifacts/metrics_best.json
         if: ${{ hashFiles('models/model_linear.joblib') != '' || hashFiles('models/model_best.joblib') != '' }}
+        # EOF
