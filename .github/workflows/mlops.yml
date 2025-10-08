@@ -54,10 +54,10 @@ jobs:
             echo "DAGSHUB env not set; skipping remote setup";
           fi
 
-      - name: DVC pull & checkout data
+      - name: DVC pull & checkout dataset only
         run: |
-          dvc pull
-          dvc checkout
+          dvc pull -r dagshub dados/dadosVenda.xlsx.dvc
+          dvc checkout dados/dadosVenda.xlsx.dvc
 
       - name: Run tests (pytest)
         run: |
