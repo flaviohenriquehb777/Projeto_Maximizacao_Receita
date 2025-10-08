@@ -12,6 +12,14 @@ stages:
     deps:
       - src/experiments.py
       - dados/dadosVenda.xlsx
+    params:
+      - params.yaml:
+          - experiments.ridge_alphas
+          - experiments.lasso_alphas
+          - experiments.rf_n_estimators
+          - experiments.gb_learning_rates
+          - experiments.test_size
+          - experiments.random_state
     outs:
       - models/model_best.joblib
       - artifacts/metrics_best.json

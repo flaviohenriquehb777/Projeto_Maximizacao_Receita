@@ -11,3 +11,5 @@ dvc
 mlflow
 dagshub
 python-dotenv
+pyyaml
+pytest

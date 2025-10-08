@@ -3,6 +3,7 @@ import json
 import warnings
 from pathlib import Path
 import sys
+import yaml
 
 import pandas as pd
 import numpy as np
@@ -102,6 +103,26 @@ def main():
     tracking_mode = setup_tracking()
     df = load_and_prepare_data(DADOS_AMOR_A_CAKES)
 
+    # Carregar parâmetros
+    params_path = PROJECT_ROOT / "params.yaml"
+    if params_path.exists():
+        with open(params_path, "r", encoding="utf-8") as f:
+            cfg = yaml.safe_load(f)
+        exp = cfg.get("experiments", {})
+        ridge_alphas = exp.get("ridge_alphas", [0.1, 1.0, 10.0])
+        lasso_alphas = exp.get("lasso_alphas", [0.1, 1.0, 10.0])
+        rf_n_estimators = exp.get("rf_n_estimators", [100, 300])
+        gb_learning_rates = exp.get("gb_learning_rates", [0.05, 0.1])
+        test_size = exp.get("test_size", 0.2)
+        random_state = exp.get("random_state", RANDOM_STATE)
+    else:
+        ridge_alphas = [0.1, 1.0, 10.0]
+        lasso_alphas = [0.1, 1.0, 10.0]
+        rf_n_estimators = [100, 300]
+        gb_learning_rates = [0.05, 0.1]
+        test_size = 0.2
+        random_state = RANDOM_STATE
+
     features = ["PrecoVenda_scaled", "PrecoOriginal_scaled", "Desconto_scaled"]
     target = "VendaQtd_scaled"
 
@@ -109,7 +130,7 @@ def main():
     y = df[target]
 
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=RANDOM_STATE
+        X, y, test_size=test_size, random_state=random_state
     )
 
     candidates = []
@@ -118,14 +139,15 @@ def main():
     candidates.append(("LinearRegression", LinearRegression()))
 
     # Regularização
-    for alpha in [0.1, 1.0, 10.0]:
+    for alpha in ridge_alphas:
         candidates.append((f"Ridge_alpha_{alpha}", Ridge(alpha=alpha, random_state=RANDOM_STATE)))
+    for alpha in lasso_alphas:
         candidates.append((f"Lasso_alpha_{alpha}", Lasso(alpha=alpha, random_state=RANDOM_STATE)))
 
     # Ensemble simples
-    for n_estimators in [100, 300]:
+    for n_estimators in rf_n_estimators:
         candidates.append((f"RandomForest_{n_estimators}", RandomForestRegressor(n_estimators=n_estimators, random_state=RANDOM_STATE)))
-    for learning_rate in [0.05, 0.1]:
+    for learning_rate in gb_learning_rates:
         candidates.append((f"GradientBoosting_lr_{learning_rate}", GradientBoostingRegressor(learning_rate=learning_rate, random_state=RANDOM_STATE)))
 
     results = []
@@ -146,6 +168,19 @@ def main():
     joblib.dump(best["model"], best_model_path)
     with open(best_metrics_path, "w", encoding="utf-8") as f:
         json.dump({"model": best["name"], "rmse": best["rmse"], "r2": best["r2"]}, f, ensure_ascii=False, indent=2)
+
+    # Registrar modelo no MLflow para ficar explícito no DagsHub (Models)
+    try:
+        import mlflow.sklearn as mls
+        with mlflow.start_run(run_name=f"best_model_{best['name']}"):
+            mlflow.log_params({
+                "best_model": best["name"],
+                "rmse": best["rmse"],
+                "r2": best["r2"],
+            })
+            mls.log_model(best["model"], artifact_path="model", registered_model_name="best-model")
+    except Exception as e:
+        warnings.warn(f"Falha ao registrar modelo no MLflow: {e}")
 
     print(f"Melhor modelo: {best['name']} | RMSE={best['rmse']:.4f} R2={best['r2']:.4f}")
     print(f"Salvo em: {best_model_path}")

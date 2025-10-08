@@ -59,6 +59,10 @@ jobs:
           dvc pull
           dvc checkout
 
+      - name: Run tests (pytest)
+        run: |
+          pytest
+
       - name: Train model
         run: |
           python src/train.py
