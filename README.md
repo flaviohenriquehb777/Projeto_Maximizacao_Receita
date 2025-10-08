@@ -220,3 +220,28 @@ Se tiver alguma dúvida, sugestão ou quiser colaborar, sinta-se à vontade para
 -   **Nome:** Flávio Henrique Barbosa
 -   **LinkedIn:** [Flávio Henrique Barbosa | LinkedIn](https://www.linkedin.com/in/fl%C3%A1vio-henrique-barbosa-38465938)
 -   **Email:** flaviohenriquehb777@outlook.com
+### Como evitar erros no Actions
+
+O CI foi endurecido para seguir mesmo sem dataset, usando dados sintéticos. Para utilizar o dataset real e não ver avisos do DVC:
+
+1. Configure o remoto DVC no seu ambiente local (ajuste `OWNER/REPO`):
+
+```bash
+dvc remote add -d dagshub https://dagshub.com/OWNER/REPO.dvc
+dvc remote modify dagshub auth basic
+dvc remote modify dagshub user "$DAGSHUB_OWNER"
+dvc remote modify dagshub password "$DAGSHUB_TOKEN"
+```
+
+2. Envie o dataset para o remoto:
+
+```bash
+dvc push dados/dadosVenda.xlsx.dvc
+```
+
+3. No GitHub, adicione os segredos em Settings → Secrets and variables → Actions:
+
+- `DAGSHUB_OWNER`, `DAGSHUB_REPO`, `DAGSHUB_TOKEN` (ou `DAGSHUB_PASSWORD`)
+- Opcional: `MLFLOW_TRACKING_URI` se quiser usar o servidor MLflow do DagsHub
+
+Com isso, o passo `dvc pull` baixa o dataset no CI e o treino usa dados reais. Sem dados no remoto, o CI continua rodando com fallback sintético, sem falhar.
