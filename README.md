@@ -192,9 +192,13 @@ dvc remote modify dagshub password "$DAGSHUB_TOKEN"
 
 - Workflow: `.github/workflows/mlops.yml`
 - Em cada push/PR nas branches `main`/`master`:
-  - Instala dependências
-  - Executa `python src/train.py`
-  - Publica `models/model_linear.joblib` e `artifacts/metrics.json` como artifacts
+  - Matrix de Python (`3.10`, `3.11`) com cache de `pip`
+  - Cache de DVC baseado em `dvc.lock`
+  - Executa `pre-commit` (Black, isort, Flake8, trailing whitespace, EOF)
+  - Executa testes com cobertura (`pytest -q --cov=src --cov-report=xml`)
+  - Upload de cobertura (`coverage.xml`) como artifact
+  - Treino e experimentos com fallback sintético quando o dataset não está no remoto
+  - Publica modelos e métricas como artifacts
 - Para usar DagsHub no CI, configure os `secrets`:
   - `DAGSHUB_OWNER`, `DAGSHUB_REPO`, `DAGSHUB_TOKEN` e opcional `MLFLOW_TRACKING_URI`
 
