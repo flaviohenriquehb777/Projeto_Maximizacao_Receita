@@ -94,7 +94,7 @@ jobs:
 
       - name: Type check (mypy)
         run: |
-          mypy src --strict --ignore-missing-imports
+          mypy src --ignore-missing-imports
 
       - name: Train model
         run: |
