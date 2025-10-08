@@ -23,4 +23,12 @@ repos:
       - id: flake8
         files: ^(src|tests)/
         args:
-          - --exclude=.git,__pycache__,build,dist,.ipynb_checkpoints,src/config/.ipynb_checkpoints
+          - --exclude=.git,__pycache__,build,dist
+          - --extend-exclude=**/.ipynb_checkpoints/**
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.3
+    hooks:
+      - id: ruff
+        args: ["--line-length=88"]
+      - id: ruff-format
