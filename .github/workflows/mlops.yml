@@ -12,6 +12,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -35,12 +37,16 @@ jobs:
           echo "DAGSHUB_TOKEN=${DAGSHUB_TOKEN}" >> $GITHUB_ENV
           echo "MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI}" >> $GITHUB_ENV
 
-      - name: Configure DVC remote credentials
-        if: env.DAGSHUB_OWNER != '' && env.DAGSHUB_TOKEN != ''
+      - name: Ensure default DVC remote (DagsHub)
         run: |
+          if dvc remote list | grep -q "dagshub"; then
+            echo "Remote 'dagshub' already present";
+          else
+            dvc remote add -d dagshub "https://dagshub.com/${DAGSHUB_OWNER}/${DAGSHUB_REPO}.dvc";
+          fi
           dvc remote modify dagshub auth basic
-          dvc remote modify dagshub user "$DAGSHUB_OWNER"
-          dvc remote modify dagshub password "$DAGSHUB_TOKEN"
+          dvc remote modify dagshub user "${DAGSHUB_OWNER}"
+          dvc remote modify dagshub password "${DAGSHUB_TOKEN}"
 
       - name: DVC pull & checkout data
         run: |
