@@ -55,9 +55,12 @@ jobs:
           fi
 
       - name: DVC pull & checkout dataset only
+        continue-on-error: true
         run: |
-          dvc pull -r dagshub dados/dadosVenda.xlsx.dvc
-          dvc checkout dados/dadosVenda.xlsx.dvc
+          set -e
+          echo "Trying to pull dataset via DVC..."
+          dvc pull -r dagshub dados/dadosVenda.xlsx.dvc || echo "DVC pull failed; continuing"
+          dvc checkout dados/dadosVenda.xlsx.dvc || echo "DVC checkout failed; continuing"
 
       - name: Run tests (pytest)
         run: |
@@ -85,3 +88,4 @@ jobs:
             artifacts/metrics.json
             models/model_best.joblib
             artifacts/metrics_best.json
+        if: ${{ hashFiles('models/model_linear.joblib') != '' || hashFiles('models/model_best.joblib') != '' }}
