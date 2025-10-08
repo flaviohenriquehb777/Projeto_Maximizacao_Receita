@@ -92,6 +92,10 @@ jobs:
           name: coverage-xml
           path: coverage.xml
 
+      - name: Type check (mypy)
+        run: |
+          mypy src --strict --ignore-missing-imports
+
       - name: Train model
         run: |
           python src/train.py

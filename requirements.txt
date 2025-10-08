@@ -15,3 +15,4 @@ pyyaml
 pytest
 pytest-cov
 pre-commit
+mypy
