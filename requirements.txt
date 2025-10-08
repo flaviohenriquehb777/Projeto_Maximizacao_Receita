@@ -13,3 +13,5 @@ dagshub
 python-dotenv
 pyyaml
 pytest
+pytest-cov
+pre-commit
