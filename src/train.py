@@ -1,6 +1,8 @@
 import json
 import os
 import warnings
+import re
+from urllib.parse import urlparse
 from pathlib import Path
 
 import joblib
@@ -50,8 +52,22 @@ def setup_tracking():
     mlflow_uri = os.getenv("MLFLOW_TRACKING_URI")
 
     if mlflow_uri:
-        mlflow.set_tracking_uri(mlflow_uri)
-        return "custom"
+        parsed = urlparse(mlflow_uri)
+        # Accept explicit URIs (http/https/file). Otherwise guard against Windows paths on Linux runners.
+        if parsed.scheme in {"http", "https", "file"}:
+            mlflow.set_tracking_uri(mlflow_uri)
+            return "custom"
+        # Ignore Windows-style paths when not on Windows
+        if os.name != "nt" and re.match(r"^[A-Za-z]:\\\\", mlflow_uri):
+            warnings.warn(
+                "MLFLOW_TRACKING_URI parece caminho Windows; ignorando no CI e usando MLflow local."
+            )
+        else:
+            try:
+                mlflow.set_tracking_uri(mlflow_uri)
+                return "custom"
+            except Exception:
+                warnings.warn("MLFLOW_TRACKING_URI inválido; usando MLflow local.")
 
     if dagshub is not None and repo_name and owner:
         try:

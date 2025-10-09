@@ -1,6 +1,8 @@
 import json
 import os
 import warnings
+import re
+from urllib.parse import urlparse
 from pathlib import Path
 from typing import Any, Callable, Optional
 from projeto_maximizacao_receita.config.paths import (
@@ -49,8 +51,20 @@ def setup_tracking():
     mlflow_uri = os.getenv("MLFLOW_TRACKING_URI")
 
     if mlflow_uri:
-        mlflow.set_tracking_uri(mlflow_uri)
-        return "custom"
+        parsed = urlparse(mlflow_uri)
+        if parsed.scheme in {"http", "https", "file"}:
+            mlflow.set_tracking_uri(mlflow_uri)
+            return "custom"
+        if os.name != "nt" and re.match(r"^[A-Za-z]:\\\\", mlflow_uri):
+            warnings.warn(
+                "MLFLOW_TRACKING_URI parece caminho Windows; ignorando no CI e usando MLflow local."
+            )
+        else:
+            try:
+                mlflow.set_tracking_uri(mlflow_uri)
+                return "custom"
+            except Exception:
+                warnings.warn("MLFLOW_TRACKING_URI inválido; usando MLflow local.")
 
     if dagshub is not None and repo_name and owner:
         try:
