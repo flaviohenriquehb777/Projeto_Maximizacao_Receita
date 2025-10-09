@@ -45,12 +45,43 @@ jobs:
       - name: Job summary (metrics)
         if: ${{ always() }}
         run: |
-          echo "# Resultados do Pipeline" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "## Métricas do treino (artifacts/metrics.json)" >> "$GITHUB_STEP_SUMMARY"
-          python -c "import json, os, os.path as p; s=os.environ['GITHUB_STEP_SUMMARY']; f='artifacts/metrics.json'; open(s,'a',encoding='utf-8').write(('- Treino:\n'+''.join(f'  - {k}: {v}\n' for k,v in json.load(open(f,'r',encoding='utf-8')).items())) if p.exists(f) else '- Treino: arquivo não encontrado\n')"
-          echo "## Métricas dos experimentos (artifacts/metrics_best.json)" >> "$GITHUB_STEP_SUMMARY"
-          python -c "import json, os, os.path as p; s=os.environ['GITHUB_STEP_SUMMARY']; f='artifacts/metrics_best.json'; open(s,'a',encoding='utf-8').write(('- Melhor modelo:\n'+''.join(f'  - {k}: {v}\n' for k,v in json.load(open(f,'r',encoding='utf-8')).items())) if p.exists(f) else '- Melhor modelo: arquivo não encontrado\n')"
+          python - <<'PY'
+          import os, json
+          from os import path as p
+          s = os.environ['GITHUB_STEP_SUMMARY']
+          lines = ['# Métricas e Melhor Modelo', '']
+
+          # Treino
+          lines.append('## Treino')
+          train_path = 'artifacts/metrics.json'
+          if p.exists(train_path):
+              try:
+                  d = json.load(open(train_path, 'r', encoding='utf-8'))
+                  lines.append(f"- RMSE: {d.get('rmse', 'N/A')}")
+                  lines.append(f"- R2: {d.get('r2', 'N/A')}")
+              except Exception:
+                  lines.append('- métricas inválidas')
+          else:
+              lines.append('- arquivo não encontrado')
+
+          # Melhor modelo
+          lines.append('')
+          lines.append('## Melhor Modelo')
+          best_path = 'artifacts/metrics_best.json'
+          if p.exists(best_path):
+              try:
+                  b = json.load(open(best_path, 'r', encoding='utf-8'))
+                  lines.append(f"- Modelo: {b.get('model', 'N/A')}")
+                  lines.append(f"- RMSE: {b.get('rmse', 'N/A')}")
+                  lines.append(f"- R2: {b.get('r2', 'N/A')}")
+              except Exception:
+                  lines.append('- métricas inválidas')
+          else:
+              lines.append('- arquivo não encontrado')
+
+          with open(s, 'a', encoding='utf-8') as f:
+              f.write('\n'.join(lines) + '\n')
+          PY
 
       - name: Upload artifacts (se disponíveis)
         if: ${{ hashFiles('artifacts/metrics.json') != '' || hashFiles('artifacts/metrics_best.json') != '' }}
