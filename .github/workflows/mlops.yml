@@ -134,6 +134,33 @@ jobs:
         run: |
           dvc repro
 
+      - name: Job summary (metrics)
+        if: ${{ always() }}
+        run: |
+          echo "# Resultados do Pipeline" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "## Métricas do treino (artifacts/metrics.json)" >> "$GITHUB_STEP_SUMMARY"
+          python - <<'PY'
+import json, os
+summary = os.environ.get('GITHUB_STEP_SUMMARY')
+def write(text):
+    with open(summary, 'a', encoding='utf-8') as f:
+        f.write(text + "\n")
+def show_metrics(path, title):
+    if os.path.exists(path):
+        with open(path, 'r', encoding='utf-8') as fh:
+            data = json.load(fh)
+        write(f"- {title}:")
+        for k, v in data.items():
+            write(f"  - {k}: {v}")
+    else:
+        write(f"- {title}: arquivo não encontrado")
+show_metrics('artifacts/metrics.json', 'Treino')
+write("")
+write("## Métricas dos experimentos (artifacts/metrics_best.json)")
+show_metrics('artifacts/metrics_best.json', 'Melhor modelo')
+PY
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:

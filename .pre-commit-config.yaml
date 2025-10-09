@@ -14,20 +14,6 @@ repos:
     hooks:
       - id: black
 
-  - repo: https://github.com/PyCQA/isort
-    rev: 5.12.0
-    hooks:
-      - id: isort
-
-  - repo: https://github.com/PyCQA/flake8
-    rev: 7.0.0
-    hooks:
-      - id: flake8
-        files: ^(src|tests)/
-        args:
-          - --exclude=.git,__pycache__,build,dist
-          - --extend-exclude=**/.ipynb_checkpoints/**
-
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.6.3
     hooks:
