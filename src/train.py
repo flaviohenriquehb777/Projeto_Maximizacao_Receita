@@ -58,6 +58,25 @@ def setup_tracking():
 
     allow_remote = _truthy(enable_remote)
 
+    # Sanitiza variáveis de ambiente de MLflow que possam apontar para drives Windows
+    for var in [
+        "MLFLOW_ARTIFACT_URI",
+        "MLFLOW_ARTIFACT_LOCATION",
+        "MLFLOW_ARTIFACTS_DIR",
+    ]:
+        val = os.getenv(var)
+        if not val:
+            continue
+        parsed_val = urlparse(val)
+        if parsed_val.scheme == "file":
+            if os.name != "nt" and re.match(r"^/[A-Za-z]:", parsed_val.path or ""):
+                os.environ.pop(var, None)
+        else:
+            if os.name != "nt" and (
+                re.match(r"^[A-Za-z]:(\\|/)", val) or re.match(r"^/[A-Za-z]:", val)
+            ):
+                os.environ.pop(var, None)
+
     if mlflow_uri:
         parsed = urlparse(mlflow_uri)
         # Remote URIs (http/https) só quando explicitamente habilitado
