@@ -1,0 +1,19 @@
+name: CI Pure Sanity
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  pure:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print environment without using actions
+        run: |
+          echo "Repo: ${{ github.repository }}"
+          echo "Ref: ${{ github.ref }}"
+          echo "Runner OS: ${{ runner.os }}"
+          echo "Actor: ${{ github.actor }}"
+          echo "Date: $(date)"
+          python3 --version || true
+          uname -a || true
