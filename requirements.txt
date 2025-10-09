@@ -12,6 +12,7 @@ mlflow
 dagshub
 python-dotenv
 pyyaml
+types-PyYAML
 pytest
 pytest-cov
 pre-commit

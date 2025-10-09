@@ -1,6 +1,5 @@
 import json
 import os
-import sys
 import warnings
 from pathlib import Path
 
@@ -14,18 +13,27 @@ from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import MinMaxScaler, RobustScaler
 
+from typing import Any, Callable, Optional
+
+dagshub: Optional[Any]
 try:
-    import dagshub
+    import dagshub as _dagshub
+    dagshub = _dagshub
 except Exception:
     dagshub = None
 
+load_dotenv: Optional[Callable[..., bool]]
 try:
-    from dotenv import load_dotenv
+    from dotenv import load_dotenv as _load_dotenv
+    load_dotenv = _load_dotenv
 except Exception:
     load_dotenv = None
 
-sys.path.append(str(Path(__file__).resolve().parents[1]))
-from src.config.paths import DADOS_AMOR_A_CAKES, MODELS_DIR, PROJECT_ROOT
+from projeto_maximizacao_receita.config.paths import (
+    DADOS_AMOR_A_CAKES,
+    MODELS_DIR,
+    PROJECT_ROOT,
+)
 
 RANDOM_STATE = 42
 
@@ -43,7 +51,7 @@ def setup_tracking():
         mlflow.set_tracking_uri(mlflow_uri)
         return "custom"
 
-    if dagshub and repo_name and owner:
+    if dagshub is not None and repo_name and owner:
         try:
             dagshub.init(repo_name, owner, mlflow=True)
             return "dagshub"
