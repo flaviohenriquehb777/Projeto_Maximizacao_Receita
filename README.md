@@ -226,6 +226,22 @@ Se tiver alguma dúvida, sugestão ou quiser colaborar, sinta-se à vontade para
 -   **Nome:** Flávio Henrique Barbosa
 -   **LinkedIn:** [Flávio Henrique Barbosa | LinkedIn](https://www.linkedin.com/in/fl%C3%A1vio-henrique-barbosa-38465938)
 -   **Email:** flaviohenriquehb777@outlook.com
+
+## Estrutura atualizada (refatoração)
+
+Para uma organização profissional e maior qualidade do código, o projeto foi estruturado como um pacote Python dentro de `src/`:
+
+- `src/projeto_maximizacao_receita/`: pacote com módulos por domínio
+  - `config/paths.py`: caminhos e constantes (`PROJECT_ROOT`, `DADOS_VENDA_PATH`, alias `DADOS_AMOR_A_CAKES`)
+  - `utils/`: utilitários gerais
+  - `ml/`: utilitários de machine learning
+  - `viz/`: visualizações
+  - `stats/`: rotinas estatísticas
+- `src/train.py` e `src/experiments.py`: entrypoints que usam o pacote (mantêm compatibilidade com DVC e testes)
+- `.pre-commit-config.yaml`: hooks consolidados (`ruff`, `ruff-format`, `black`) e exclusões para `.github/workflows/*.yml` em whitespace/EOL
+- `.gitignore`: ignora saídas de `models/` e `artifacts/` gerenciadas via DVC
+
+Importante: há um módulo de compatibilidade em `src/config/paths.py` que reexporta os símbolos principais do novo pacote para não quebrar notebooks e testes legados.
 ### Como evitar erros no Actions
 
 O CI foi endurecido para seguir mesmo sem dataset, usando dados sintéticos. Para utilizar o dataset real e não ver avisos do DVC:

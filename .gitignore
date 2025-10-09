@@ -24,12 +24,20 @@ __pycache__/
 
 # Modelos e resultados
 models/
+models/*.joblib
+models/*.pkl
 logs/
 outputs/
 report/
 
 # MLflow tracking local
 mlruns/
+
+# Artefatos e métricas
+artifacts/
+artifacts/*.json
+artifacts/*.yaml
+artifacts/*.yml
 
 # IDEs e editores
 .vscode/
