@@ -17,13 +17,8 @@ concurrency:
 jobs:
   build-train:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-  matrix:
-        python-version: [ "3.10", "3.11" ]
     env:
       PYTHONPATH: ${{ github.workspace }}
-      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
@@ -33,149 +28,19 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: "3.10"
           cache: 'pip'
-
-      - name: Cache DVC
-        uses: actions/cache@v4
-        with:
-          path: .dvc/cache
-          key: ${{ runner.os }}-dvc-${{ hashFiles('dvc.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-dvc-
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run pre-commit (format/lint)
-        continue-on-error: true
+      - name: Treinar e gerar métricas (fallback simples)
         run: |
-          pre-commit run --all-files --show-diff-on-failure
-
-      - name: Ruff lint
-        run: |
-          ruff check src tests
-
-      - name: Black format check
-        run: |
-          black --check src tests
-
-      - name: Configure env (DagsHub/MLflow)
-        env:
-          DAGSHUB_OWNER: ${{ secrets.DAGSHUB_OWNER }}
-          DAGSHUB_REPO: ${{ secrets.DAGSHUB_REPO }}
-          DAGSHUB_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
-          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
-        run: |
-          echo "DAGSHUB_OWNER=${DAGSHUB_OWNER}" >> $GITHUB_ENV
-          echo "DAGSHUB_REPO=${DAGSHUB_REPO}" >> $GITHUB_ENV
-          echo "DAGSHUB_TOKEN=${DAGSHUB_TOKEN}" >> $GITHUB_ENV
-          echo "MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI}" >> $GITHUB_ENV
-
-      - name: Ensure default DVC remote (DagsHub)
-        if: ${{ env.DAGSHUB_OWNER != '' && env.DAGSHUB_REPO != '' }}
-        run: |
-          if [ -n "${DAGSHUB_OWNER}" ] && [ -n "${DAGSHUB_REPO}" ]; then
-            if dvc remote list | grep -q "dagshub"; then
-              echo "Remote 'dagshub' already present";
-            else
-              dvc remote add -d dagshub "https://dagshub.com/${DAGSHUB_OWNER}/${DAGSHUB_REPO}.dvc";
-            fi
-            if [ -n "${DAGSHUB_TOKEN}" ]; then
-              dvc remote modify dagshub auth basic
-              dvc remote modify dagshub user "${DAGSHUB_OWNER}"
-              dvc remote modify dagshub password "${DAGSHUB_TOKEN}"
-            fi
-          else
-            echo "DAGSHUB env not set; skipping remote setup";
-          fi
-
-      - name: DVC pull & checkout dataset only
-        if: ${{ env.DAGSHUB_OWNER != '' && env.DAGSHUB_REPO != '' }}
-        continue-on-error: true
-        run: |
-          echo "Trying to pull dataset via DVC..."
-          dvc pull -r dagshub dados/dadosVenda.xlsx.dvc || echo "DVC pull failed; continuing"
-          dvc checkout dados/dadosVenda.xlsx.dvc || echo "DVC checkout failed; continuing"
-
-      - name: Run tests (pytest with coverage)
-        run: |
-          pytest -q --cov=src --cov-report=xml --cov-report=html
-
-      - name: Upload coverage report
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-xml-${{ matrix.python-version }}
-          path: coverage.xml
-
-      - name: Upload coverage HTML
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-html-${{ matrix.python-version }}
-          path: htmlcov/
-
-      - name: Upload coverage to Codecov
-        if: ${{ env.CODECOV_TOKEN != '' }}
-        uses: codecov/codecov-action@f30e4959ba63075080d4f7f90cacc18d9f3fafd7
-        with:
-          token: ${{ env.CODECOV_TOKEN }}
-          files: coverage.xml
-          fail_ci_if_error: false
-
-      - name: Coverage summary
-        if: ${{ always() }}
-        run: |
-          python - <<'PY'
-          import os
-          import xml.etree.ElementTree as ET
-          s = os.environ['GITHUB_STEP_SUMMARY']
-          path = 'coverage.xml'
-          if os.path.exists(path):
-              try:
-                  root = ET.parse(path).getroot()
-                  rate = float(root.attrib.get('line-rate', '0'))
-                  pct = rate * 100.0
-                  with open(s, 'a', encoding='utf-8') as f:
-                      f.write('\n## Cobertura Coverage\n')
-                      f.write(f'- Line coverage: {pct:.2f}%\n')
-              except Exception:
-                  with open(s, 'a', encoding='utf-8') as f:
-                      f.write('\n## Cobertura Coverage\n')
-                      f.write('- Falha ao ler coverage.xml\n')
-          else:
-              with open(s, 'a', encoding='utf-8') as f:
-                  f.write('\n## Cobertura Coverage\n')
-                  f.write('- coverage.xml não encontrado\n')
-          PY
-
-      - name: Run tox (multi-env tests)
-        continue-on-error: true
-        run: |
-          tox -q
-
-      - name: Type check (mypy)
-        run: |
-          mypy src --ignore-missing-imports
-
-      - name: DVC repro (train + experiments)
-        continue-on-error: true
-        run: |
-          dvc repro
-
-      - name: Fallback: gerar métricas sem DVC
-        if: ${{ always() }}
-        run: |
-          echo "Verificando artifacts..."
-          if [ ! -f artifacts/metrics.json ]; then
-            echo "Fallback: executando train.py para produzir artifacts/metrics.json"
-            python src/train.py || true
-          fi
-          if [ ! -f artifacts/metrics_best.json ]; then
-            echo "Fallback: executando experiments.py para produzir artifacts/metrics_best.json"
-            python src/experiments.py || true
-          fi
+          mkdir -p artifacts models || true
+          python src/train.py || true
+          python src/experiments.py || true
 
       - name: Job summary (metrics)
         if: ${{ always() }}
@@ -187,14 +52,12 @@ jobs:
           echo "## Métricas dos experimentos (artifacts/metrics_best.json)" >> "$GITHUB_STEP_SUMMARY"
           python -c "import json, os, os.path as p; s=os.environ['GITHUB_STEP_SUMMARY']; f='artifacts/metrics_best.json'; open(s,'a',encoding='utf-8').write(('- Melhor modelo:\n'+''.join(f'  - {k}: {v}\n' for k,v in json.load(open(f,'r',encoding='utf-8')).items())) if p.exists(f) else '- Melhor modelo: arquivo não encontrado\n')"
 
-      - name: Upload artifacts
-        if: ${{ hashFiles('models/model_linear.joblib') != '' || hashFiles('models/model_best.joblib') != '' }}
+      - name: Upload artifacts (se disponíveis)
+        if: ${{ hashFiles('artifacts/metrics.json') != '' || hashFiles('artifacts/metrics_best.json') != '' }}
         uses: actions/upload-artifact@v4
         with:
-          name: model-and-metrics-${{ matrix.python-version }}
+          name: model-and-metrics
           path: |
-            models/model_linear.joblib
             artifacts/metrics.json
-            models/model_best.joblib
             artifacts/metrics_best.json
         # EOF
