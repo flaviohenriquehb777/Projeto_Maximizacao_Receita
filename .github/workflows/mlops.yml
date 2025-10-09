@@ -50,6 +50,10 @@ jobs:
         run: |
           ruff check src tests
 
+      - name: Black format check
+        run: |
+          black --check src tests
+
       - name: Configure env (DagsHub/MLflow)
         env:
           DAGSHUB_OWNER: ${{ secrets.DAGSHUB_OWNER }}
@@ -121,18 +125,14 @@ jobs:
         run: |
           mypy src --ignore-missing-imports
 
-      - name: Train model
-        run: |
-          python src/train.py
-
-      - name: Run experiments (log to MLflow/DagsHub)
+      - name: DVC repro (train + experiments)
         env:
           DAGSHUB_OWNER: ${{ env.DAGSHUB_OWNER }}
           DAGSHUB_REPO: ${{ env.DAGSHUB_REPO }}
           DAGSHUB_TOKEN: ${{ env.DAGSHUB_TOKEN }}
           MLFLOW_TRACKING_URI: ${{ env.MLFLOW_TRACKING_URI }}
         run: |
-          python src/experiments.py
+          dvc repro
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

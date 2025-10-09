@@ -9,8 +9,26 @@ stages:
       size: 73395
     - path: src/experiments.py
       hash: md5
-      md5: 50459df06e8d5ebf28675cbc5883e35b
-      size: 4638
+      md5: 1cd4865cc340c66c46f8adb11e712f5e
+      size: 7233
+    params:
+      params.yaml:
+        experiments.gb_learning_rates:
+        - 0.05
+        - 0.1
+        experiments.lasso_alphas:
+        - 0.1
+        - 1.0
+        - 10.0
+        experiments.random_state: 42
+        experiments.rf_n_estimators:
+        - 100
+        - 300
+        experiments.ridge_alphas:
+        - 0.1
+        - 1.0
+        - 10.0
+        experiments.test_size: 0.2
     outs:
     - path: artifacts/metrics_best.json
       hash: md5
@@ -20,3 +38,23 @@ stages:
       hash: md5
       md5: 4270949b9ef172e21a2be733fca7229e
       size: 896
+  train:
+    cmd: python src/train.py
+    deps:
+    - path: dados/dadosVenda.xlsx
+      hash: md5
+      md5: fd3210963fefacc3054057cfe63ae0fa
+      size: 73395
+    - path: src/train.py
+      hash: md5
+      md5: cc840fb2209451f7f4a6550bf3e21145
+      size: 5054
+    outs:
+    - path: artifacts/metrics.json
+      hash: md5
+      md5: 21bb73c4230d8f72acb58d136eb0cf1c
+      size: 66
+    - path: models/model_linear.joblib
+      hash: md5
+      md5: 0b8871ee8801520f4e6efc04542fd40b
+      size: 993
