@@ -50,28 +50,47 @@ def setup_tracking():
     owner = os.getenv("DAGSHUB_OWNER")
     mlflow_uri = os.getenv("MLFLOW_TRACKING_URI")
     dagshub_token = os.getenv("DAGSHUB_TOKEN")
+    enable_remote = os.getenv("ENABLE_REMOTE_MLFLOW")
+
+    def _truthy(val: Optional[str]) -> bool:
+        return str(val).lower() in {"1", "true", "yes", "on"} if val else False
+
+    allow_remote = _truthy(enable_remote)
 
     if mlflow_uri:
         parsed = urlparse(mlflow_uri)
-        if parsed.scheme in {"http", "https", "file"}:
-            mlflow.set_tracking_uri(mlflow_uri)
-            return "custom"
-        # Ignore Windows-style paths when not on Windows (e.g., C:\, C:/, or /C:)
-        if os.name != "nt" and (
-            re.match(r"^[A-Za-z]:(\\|/)", mlflow_uri)
-            or re.match(r"^/[A-Za-z]:", mlflow_uri)
-        ):
-            warnings.warn(
-                "MLFLOW_TRACKING_URI parece caminho Windows; ignorando no CI e usando MLflow local."
-            )
-        else:
-            try:
+        if parsed.scheme in {"http", "https"}:
+            if allow_remote:
                 mlflow.set_tracking_uri(mlflow_uri)
                 return "custom"
-            except Exception:
-                warnings.warn("MLFLOW_TRACKING_URI inválido; usando MLflow local.")
+            else:
+                warnings.warn(
+                    "MLFLOW_TRACKING_URI remoto ignorado no CI; usando MLflow local."
+                )
+        elif parsed.scheme == "file":
+            if os.name != "nt" and re.match(r"^/[A-Za-z]:", parsed.path or ""):
+                warnings.warn(
+                    "MLFLOW_TRACKING_URI aponta para drive Windows; ignorando e usando MLflow local."
+                )
+            else:
+                mlflow.set_tracking_uri(mlflow_uri)
+                return "custom"
+        else:
+            if os.name != "nt" and (
+                re.match(r"^[A-Za-z]:(\\|/)", mlflow_uri)
+                or re.match(r"^/[A-Za-z]:", mlflow_uri)
+            ):
+                warnings.warn(
+                    "MLFLOW_TRACKING_URI parece caminho Windows; ignorando e usando MLflow local."
+                )
+            else:
+                try:
+                    mlflow.set_tracking_uri(mlflow_uri)
+                    return "custom"
+                except Exception:
+                    warnings.warn("MLFLOW_TRACKING_URI inválido; usando MLflow local.")
 
-    if dagshub is not None and repo_name and owner and dagshub_token:
+    if allow_remote and dagshub is not None and repo_name and owner and dagshub_token:
         try:
             dagshub.init(repo_name, owner, mlflow=True)
             return "dagshub"
