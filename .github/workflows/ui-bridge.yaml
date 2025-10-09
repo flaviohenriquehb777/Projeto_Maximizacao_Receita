@@ -1,0 +1,18 @@
+---
+name: UI Bridge
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  echo:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mostrar detalhes do runner
+        run: |
+          echo "Runner OS: $RUNNER_OS"
+          echo "Actor: $GITHUB_ACTOR"
+          echo "Repo: $GITHUB_REPOSITORY"
