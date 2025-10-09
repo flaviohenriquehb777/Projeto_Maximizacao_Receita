@@ -2,6 +2,7 @@
 name: UI Bridge
 
 on:
+  push:
   workflow_dispatch:
 
 permissions:
