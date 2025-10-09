@@ -8,6 +8,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   echo:
     runs-on: ubuntu-latest
@@ -17,3 +21,9 @@ jobs:
           echo "Runner OS: $RUNNER_OS"
           echo "Actor: $GITHUB_ACTOR"
           echo "Repo: $GITHUB_REPOSITORY"
+      - name: Summary
+        if: ${{ always() }}
+        run: |
+          echo "# UI Bridge" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Repo: $GITHUB_REPOSITORY" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Runner OS: $RUNNER_OS" >> "$GITHUB_STEP_SUMMARY"

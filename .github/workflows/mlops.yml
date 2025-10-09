@@ -7,6 +7,13 @@ on:
     branches: [ main, master ]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-train:
     runs-on: ubuntu-latest
@@ -19,7 +26,7 @@ jobs:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           fetch-depth: 0
 
@@ -110,11 +117,37 @@ jobs:
 
       - name: Upload coverage to Codecov
         if: ${{ env.CODECOV_TOKEN != '' }}
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@f30e4959ba63075080d4f7f90cacc18d9f3fafd7
         with:
           token: ${{ env.CODECOV_TOKEN }}
           files: coverage.xml
           fail_ci_if_error: false
+
+      - name: Coverage summary
+        if: ${{ always() }}
+        run: |
+          python - <<'PY'
+          import os
+          import xml.etree.ElementTree as ET
+          s = os.environ['GITHUB_STEP_SUMMARY']
+          path = 'coverage.xml'
+          if os.path.exists(path):
+              try:
+                  root = ET.parse(path).getroot()
+                  rate = float(root.attrib.get('line-rate', '0'))
+                  pct = rate * 100.0
+                  with open(s, 'a', encoding='utf-8') as f:
+                      f.write('\n## Cobertura Coverage\n')
+                      f.write(f'- Line coverage: {pct:.2f}%\n')
+              except Exception:
+                  with open(s, 'a', encoding='utf-8') as f:
+                      f.write('\n## Cobertura Coverage\n')
+                      f.write('- Falha ao ler coverage.xml\n')
+          else:
+              with open(s, 'a', encoding='utf-8') as f:
+                  f.write('\n## Cobertura Coverage\n')
+                  f.write('- coverage.xml não encontrado\n')
+          PY
 
       - name: Run tox (multi-env tests)
         continue-on-error: true
