@@ -19,8 +19,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix:
-        python-version: [ '3.10', '3.11' ]
+  matrix:
+        python-version: [ "3.10", "3.11" ]
     env:
       PYTHONPATH: ${{ github.workspace }}
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
@@ -160,11 +160,6 @@ jobs:
           mypy src --ignore-missing-imports
 
       - name: DVC repro (train + experiments)
-        env:
-          DAGSHUB_OWNER: ${{ env.DAGSHUB_OWNER }}
-          DAGSHUB_REPO: ${{ env.DAGSHUB_REPO }}
-          DAGSHUB_TOKEN: ${{ env.DAGSHUB_TOKEN }}
-          MLFLOW_TRACKING_URI: ${{ env.MLFLOW_TRACKING_URI }}
         continue-on-error: true
         run: |
           dvc repro
@@ -172,7 +167,6 @@ jobs:
       - name: Fallback: gerar métricas sem DVC
         if: ${{ always() }}
         run: |
-          set -e
           echo "Verificando artifacts..."
           if [ ! -f artifacts/metrics.json ]; then
             echo "Fallback: executando train.py para produzir artifacts/metrics.json"
@@ -194,6 +188,7 @@ jobs:
           python -c "import json, os, os.path as p; s=os.environ['GITHUB_STEP_SUMMARY']; f='artifacts/metrics_best.json'; open(s,'a',encoding='utf-8').write(('- Melhor modelo:\n'+''.join(f'  - {k}: {v}\n' for k,v in json.load(open(f,'r',encoding='utf-8')).items())) if p.exists(f) else '- Melhor modelo: arquivo não encontrado\n')"
 
       - name: Upload artifacts
+        if: ${{ hashFiles('models/model_linear.joblib') != '' || hashFiles('models/model_best.joblib') != '' }}
         uses: actions/upload-artifact@v4
         with:
           name: model-and-metrics-${{ matrix.python-version }}
@@ -202,5 +197,4 @@ jobs:
             artifacts/metrics.json
             models/model_best.joblib
             artifacts/metrics_best.json
-        if: ${{ hashFiles('models/model_linear.joblib') != '' || hashFiles('models/model_best.joblib') != '' }}
         # EOF
