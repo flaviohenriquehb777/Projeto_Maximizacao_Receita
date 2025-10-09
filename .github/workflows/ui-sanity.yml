@@ -1,0 +1,8 @@
+- name: UI Bridge
+- on:
+- workflow_dispatch
+- push (branches: [ main ])
+- permissions:
+- contents: read
+- jobs:
+- echo com runs-on: ubuntu-latest e steps: - run: echo "UI Bridge ok"
