@@ -57,8 +57,8 @@ def setup_tracking():
         if parsed.scheme in {"http", "https", "file"}:
             mlflow.set_tracking_uri(mlflow_uri)
             return "custom"
-        # Ignore Windows-style paths when not on Windows
-        if os.name != "nt" and re.match(r"^[A-Za-z]:\\\\", mlflow_uri):
+        # Ignore Windows-style paths when not on Windows (e.g., C:\ or C:/)
+        if os.name != "nt" and re.match(r"^[A-Za-z]:(\\|/)", mlflow_uri):
             warnings.warn(
                 "MLFLOW_TRACKING_URI parece caminho Windows; ignorando no CI e usando MLflow local."
             )
