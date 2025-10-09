@@ -36,6 +36,40 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Configurar tracking remoto (DagsHub/MLflow)
+        env:
+          DAGSHUB_OWNER: ${{ secrets.DAGSHUB_OWNER }}
+          DAGSHUB_REPO: ${{ secrets.DAGSHUB_REPO }}
+          DAGSHUB_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
+          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+        run: |
+          echo "DAGSHUB_OWNER=${DAGSHUB_OWNER}" >> $GITHUB_ENV
+          echo "DAGSHUB_REPO=${DAGSHUB_REPO}" >> $GITHUB_ENV
+          echo "DAGSHUB_TOKEN=${DAGSHUB_TOKEN}" >> $GITHUB_ENV
+          echo "MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI}" >> $GITHUB_ENV
+          if [ -n "${DAGSHUB_OWNER}" ] || [ -n "${MLFLOW_TRACKING_URI}" ]; then
+            echo "ENABLE_REMOTE_MLFLOW=1" >> $GITHUB_ENV
+          fi
+
+      - name: Garantir remote DVC (DagsHub) e baixar dataset
+        if: ${{ env.DAGSHUB_OWNER != '' && env.DAGSHUB_REPO != '' }}
+        run: |
+          set -e
+          echo "Configurando remote DVC dagshub..."
+          if dvc remote list | grep -q "dagshub"; then
+            echo "Remote 'dagshub' já existe";
+          else
+            dvc remote add -d dagshub "https://dagshub.com/${DAGSHUB_OWNER}/${DAGSHUB_REPO}.dvc";
+          fi
+          if [ -n "${DAGSHUB_TOKEN}" ]; then
+            dvc remote modify dagshub auth basic
+            dvc remote modify dagshub user "${DAGSHUB_OWNER}"
+            dvc remote modify dagshub password "${DAGSHUB_TOKEN}"
+          fi
+          echo "Baixando dataset via DVC..."
+          dvc pull -r dagshub dados/dadosVenda.xlsx.dvc || echo "DVC pull falhou; continuando com fallback"
+          dvc checkout dados/dadosVenda.xlsx.dvc || echo "DVC checkout falhou; continuando com fallback"
+
       - name: Treinar e gerar métricas (fallback simples)
         run: |
           mkdir -p artifacts models || true
