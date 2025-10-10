@@ -1,6 +1,6 @@
 # Otimização de Receita com Machine Learning
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE.md)
 
 **Projeto de análise de dados de vendas e modelagem preditiva para otimização da receita, identificando a combinação ideal de preço de venda e desconto para maximizar lucros.**
 
@@ -83,6 +83,22 @@ A análise de otimização da receita apontou para o seguinte cenário ideal, co
 * **Melhor Receita Estimada:** **R$ 23.254,72**
 
 Estes resultados sugerem que, dentro do escopo dos dados analisados e das premissas do modelo, a receita máxima é alcançada com um preço de venda específico e sem a aplicação de descontos adicionais. É crucial monitorar a implementação dessas recomendações e reavaliar o modelo periodicamente com novos dados de vendas.
+
+Nota: após as melhorias recentes no pipeline e nos experimentos (uso do dataset real no CI, avaliação de múltiplos modelos), os valores acima podem variar. Para confirmar o melhor modelo e atualizar as recomendações, consulte o resumo do último run do GitHub Actions ou os artifacts gerados (por exemplo, `artifacts/metrics_best.json`).
+
+<!-- MODEL_RESULTS_START -->
+
+### Resumo automático do último run
+
+- Treino
+  - RMSE: N/A
+  - R2: N/A
+- Melhor Modelo
+  - Modelo: N/A
+  - RMSE: N/A
+  - R2: N/A
+
+<!-- MODEL_RESULTS_END -->
 
 ## Tecnologias Utilizadas:
 
@@ -190,7 +206,7 @@ dvc remote modify dagshub password "$DAGSHUB_TOKEN"
 
 ### CI/CD (GitHub Actions)
 
-![CI Status](https://github.com/flaviohenriquehb777/Projeto_Maximizacao_Receita/actions/workflows/mlops.yml/badge.svg?branch=main)
+[![CI Status](https://github.com/flaviohenriquehb777/Projeto_Maximizacao_Receita/actions/workflows/mlops.yml/badge.svg?branch=main)](https://github.com/flaviohenriquehb777/Projeto_Maximizacao_Receita/actions/workflows/mlops.yml)
 
 - Workflow: `.github/workflows/mlops.yml`
 - Em cada push/PR nas branches `main`/`master`:
@@ -220,12 +236,7 @@ dvc remote modify dagshub password "$DAGSHUB_TOKEN"
 
 Este projeto está licenciado sob a Licença MIT. Para mais detalhes, consulte o arquivo [LICENSE.md](LICENSE.md) na raiz do repositório.
 
-## Contato:
-
-Se tiver alguma dúvida, sugestão ou quiser colaborar, sinta-se à vontade para entrar em contato:
--   **Nome:** Flávio Henrique Barbosa
--   **LinkedIn:** [Flávio Henrique Barbosa | LinkedIn](https://www.linkedin.com/in/fl%C3%A1vio-henrique-barbosa-38465938)
--   **Email:** flaviohenriquehb777@outlook.com
+ 
 
 ## Estrutura atualizada (refatoração)
 
@@ -267,3 +278,10 @@ dvc push dados/dadosVenda.xlsx.dvc
 - Opcional: `MLFLOW_TRACKING_URI` se quiser usar o servidor MLflow do DagsHub
 
 Com isso, o passo `dvc pull` baixa o dataset no CI e o treino usa dados reais. Sem dados no remoto, o CI continua rodando com fallback sintético, sem falhar.
+
+## Contato:
+
+Se tiver alguma dúvida, sugestão ou quiser colaborar, sinta-se à vontade para entrar em contato:
+- **Nome:** Flávio Henrique Barbosa
+- **LinkedIn:** [Flávio Henrique Barbosa | LinkedIn](https://www.linkedin.com/in/fl%C3%A1vio-henrique-barbosa-38465938)
+- **Email:** flaviohenriquehb777@outlook.com

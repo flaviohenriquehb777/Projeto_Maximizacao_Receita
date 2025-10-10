@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -126,3 +126,18 @@ jobs:
             artifacts/metrics.json
             artifacts/metrics_best.json
         # EOF
+
+      - name: Atualizar README com métricas e push
+        if: ${{ always() }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python scripts/update_readme.py
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          if [[ -n "$(git status --porcelain README.md)" ]]; then
+            git add README.md
+            git commit -m "docs: atualizar resultados do modelo (CI auto)"
+            git push
+          else
+            echo "README sem mudanças."
