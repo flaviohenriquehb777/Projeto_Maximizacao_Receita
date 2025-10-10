@@ -131,6 +131,7 @@ jobs:
         if: ${{ always() }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
         run: |
           python scripts/update_readme.py
           git config --global user.name "github-actions[bot]"
@@ -141,3 +142,4 @@ jobs:
             git push
           else
             echo "README sem mudanças."
+          fi
