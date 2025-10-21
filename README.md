@@ -91,12 +91,14 @@ Nota: após as melhorias recentes no pipeline e nos experimentos (uso do dataset
 ### Resumo automático do último run
 
 - Treino
-  - RMSE: N/A
-  - R2: N/A
+  - RMSE: 7.939962493671038e-05
+  - R2: 0.9999999030253405
 - Melhor Modelo
-  - Modelo: N/A
-  - RMSE: N/A
-  - R2: N/A
+  - Modelo: LinearRegression
+  - RMSE: 7.939962493671038e-05
+  - R2: 0.9999999030253405
+
+Fonte: [GitHub Actions](https://github.com/flaviohenriquehb777/Projeto_Maximizacao_Receita/actions/runs/18685941818)
 
 <!-- MODEL_RESULTS_END -->
 
